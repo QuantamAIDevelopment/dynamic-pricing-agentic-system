@@ -10,6 +10,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 import time
 import difflib
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -40,26 +42,146 @@ def scrape_products_core(url: str, competitor: str, category: str, product_name:
         driver.get(url)
         time.sleep(3)  # Wait for JS to load
         if 'flipkart.com' in url:
-            product_cards = driver.find_elements(By.CSS_SELECTOR, '._1AtVbE')
-            for card in product_cards:
+            # Step 1: Open Flipkart homepage
+            driver.get('https://www.flipkart.com')
+            time.sleep(2)
+            # Step 1.5: Close login popup if present
+            try:
+                close_btn = driver.find_element(By.CSS_SELECTOR, 'button._2KpZ6l._2doB4z')
+                close_btn.click()
+                time.sleep(1)
+            except Exception:
+                pass
+            # Step 2: Enter category in the search bar and submit
+            try:
+                wait = WebDriverWait(driver, 10)
                 try:
-                    name_tag = card.find_element(By.CSS_SELECTOR, '._4rR01T')
-                    price_tag = card.find_element(By.CSS_SELECTOR, '._30jeq3')
-                    name = name_tag.text.strip()
-                    if product_name and product_name.lower() not in name.lower():
+                    search_box = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[name="q"]')))
+                except Exception:
+                    search_box = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[title="Search for products, brands and more"]')))
+                search_box.clear()
+                search_box.send_keys(category)
+                search_box.submit()
+                time.sleep(2)
+            except Exception as e:
+                logger.error(f"Error entering category in Flipkart search bar: {e}")
+                driver.save_screenshot('flipkart_searchbar_error.png')
+            # Step 3: Enter product name in the search bar and submit
+            try:
+                wait = WebDriverWait(driver, 10)
+                try:
+                    search_box = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[name="q"]')))
+                except Exception:
+                    search_box = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[title="Search for products, brands and more"]')))
+                search_box.clear()
+                search_box.send_keys(product_name)
+                search_box.submit()
+                time.sleep(2)
+            except Exception as e:
+                logger.error(f"Error entering product name in Flipkart search bar: {e}")
+                driver.save_screenshot('flipkart_searchbar_error.png')
+            # Step 4: Scrape the resulting product listing page (Amazon-style)
+            try:
+                wait = WebDriverWait(driver, 10)
+                # Try multiple selectors for product cards
+                card_selectors = [
+                    'div._75nlfW',  # New: main product card
+                    'div._1AtVbE', 'div._2kHMtA', 'div._4ddWXP', 'div._2rpwqI'
+                ]
+                product_cards = []
+                for selector in card_selectors:
+                    cards = driver.find_elements(By.CSS_SELECTOR, selector)
+                    if cards:
+                        product_cards = cards
+                        break
+                logger.info(f"Found {len(product_cards)} Flipkart product cards on listing page.")
+                scraped_names = []
+                products = []
+                for card in product_cards:
+                    try:
+                        # Try multiple selectors for product link
+                        link_elem = None
+                        link_selectors = [
+                            'a.CGtC98',  # New: main product link
+                            'a._1fQZEK', 'a.s1Q9rs', 'a.IRpwTa', 'a._2rpwqI'
+                        ]
+                        for selector in link_selectors:
+                            links = card.find_elements(By.CSS_SELECTOR, selector)
+                            if links:
+                                link_elem = links[0]
+                                break
+                        if not link_elem:
+                            continue
+                        product_url = link_elem.get_attribute('href')
+                        # Try multiple selectors for product name
+                        name = ''
+                        name_selectors = [
+                            'div.KzDlHZ',  # New: main product name
+                            'div._4rR01T', 'a.s1Q9rs', 'div._2WkVRV', 'div._3wU53n'
+                        ]
+                        for sel in name_selectors:
+                            try:
+                                name = card.find_element(By.CSS_SELECTOR, sel).text.strip()
+                                if name:
+                                    break
+                            except Exception:
+                                continue
+                        # Try multiple selectors for price
+                        detail_price = None
+                        price_selectors = [
+                            'div.Nx9bqj._4b5DiR',  # New: main product price
+                            'div._30jeq3', 'div._1vC4OE', 'div._25b18c ._30jeq3', 'div._30jeq3._16Jk6d'
+                        ]
+                        for sel in price_selectors:
+                            try:
+                                price_text = card.find_element(By.CSS_SELECTOR, sel).text
+                                detail_price = float(price_text.replace('₹', '').replace(',', '').strip())
+                                break
+                            except Exception:
+                                continue
+                        scraped_names.append(name)
+                        if name and detail_price is not None:
+                            product = {
+                                "product_id": name[:50],
+                                "product_name": name,
+                                "category": category,
+                                "competitor_name": competitor,
+                                "competitor_price": detail_price,
+                                "product_url": product_url,
+                                "scraped_at": datetime.utcnow()
+                            }
+                            products.append(product)
+                    except Exception as e:
                         continue
-                    price = float(price_tag.text.replace('₹', '').replace(',', '').strip())
-                    product = {
-                        "product_id": name[:50],
-                        "product_name": name,
-                        "category": category,
-                        "competitor_name": competitor,
-                        "competitor_price": price,
-                        "scraped_at": datetime.utcnow()
-                    }
-                    products.append(product)
-                except Exception as e:
-                    continue
+                logger.info(f"Scraped product names: {scraped_names}")
+                # Fuzzy match for product_name
+                best_product = None
+                if product_name and products:
+                    names = [p["product_name"] for p in products]
+                    matches = difflib.get_close_matches(product_name, names, n=1, cutoff=0.5)
+                    if matches:
+                        for p in products:
+                            if p["product_name"] == matches[0]:
+                                best_product = p
+                                break
+                if best_product:
+                    products = [best_product]
+                elif products:
+                    products = [products[0]]
+                else:
+                    with open('flipkart_no_products_debug.html', 'w', encoding='utf-8') as f:
+                        f.write(driver.page_source)
+                    logger.error("No products found on Flipkart page after listing scrape. Saved page source to flipkart_no_products_debug.html.")
+                # Store found products in the database
+                if products:
+                    with next(get_db()) as db:
+                        save_competitor_prices(db, products)
+                return products[:1] if products else []
+            except Exception as e:
+                logger.error(f"Error scraping Flipkart product listing: {e}")
+                with open('flipkart_scrape_exception_debug.html', 'w', encoding='utf-8') as f:
+                    f.write(driver.page_source)
+                return []
         elif 'amazon.in' in url or 'amazon.com' in url:
             # Step 1: Open Amazon.in homepage
             driver.get('https://www.amazon.in')
