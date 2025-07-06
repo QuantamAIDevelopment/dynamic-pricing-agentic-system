@@ -9,7 +9,7 @@ The Dynamic Pricing Agent System automates product pricing for an e-commerce pla
 - Enable agent-to-agent communication for collaborative problem-solving
 - Provide a robust, production-ready solution with monitoring and logging
 - Support multi-tenant architecture for different business units
-- Incorporate learning механизмы for continuous improvement
+- Incorporate learning for continuous improvement
 
 ## 3. Functional Requirements
 ### 3.1 Agent Architecture
