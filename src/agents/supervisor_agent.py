@@ -432,18 +432,56 @@ class SupervisorAgent:
 # Global instance
 supervisor_agent = SupervisorAgent()
 
-def run_supervisor_agent(input_data: Dict[str, Any] = None) -> Dict[str, Any]:
+def get_best_competitor_price(product_name: str) -> dict:
+    """
+    For a given product name, scrape both Amazon and Flipkart, compare prices, and return the best value.
+    """
+    from agents.web_scraping_agent import run_web_scraping_agent
+    from agents.competitor_monitoring_agent import run_competitor_monitoring_agent
+    competitors = [
+        {"domain": "amazon.in", "category": "", "product_name": product_name},
+        {"domain": "flipkart.com", "category": "", "product_name": product_name}
+    ]
+    results = []
+    for comp in competitors:
+        result = run_web_scraping_agent(comp)
+        if result["status"] == "success" and result["data"]:
+            results.append(result["data"])
+    if not results:
+        return {"status": "error", "message": "No prices found from competitors."}
+    # Find the best (lowest) price
+    def extract_price(item):
+        try:
+            return float(item.get("price") or item.get("competitor_price") or 1e12)
+        except Exception:
+            return 1e12
+    best_product = min(results, key=extract_price)
+    # Save best value to DB via competitor monitoring agent
+    run_competitor_monitoring_agent(best_product)
+    return {"status": "success", "data": best_product}
+
+def run_supervisor_agent(input_data: dict = None) -> dict:
     """Main function to run the supervisor agent"""
     try:
-        if input_data:
-            # Run a single pricing cycle with provided data
+        if input_data and "product_name" in input_data:
+            product_name = input_data["product_name"]
+            result = get_best_competitor_price(product_name)
+            if result["status"] == "success":
+                return {
+                    "status": "success",
+                    "message": "Best competitor price found and saved.",
+                    "data": result["data"]
+                }
+            else:
+                return {"status": "error", "message": result["message"]}
+        elif input_data and "products" in input_data:
+            # Legacy: Run a single pricing cycle with provided data
             products = input_data.get("products", [])
             if not products:
                 return {
                     "status": "error",
                     "message": "No products provided for pricing cycle"
                 }
-            
             result = supervisor_agent.run_pricing_cycle(products)
             return {
                 "status": "success",
@@ -451,27 +489,9 @@ def run_supervisor_agent(input_data: Dict[str, Any] = None) -> Dict[str, Any]:
                 "data": result
             }
         else:
-            # Run a default cycle with sample products
-            sample_products = [
-                {
-                    "product_id": "sample_001",
-                    "product_name": "Sample Product",
-                    "domain": "amazon.com",
-                    "category": "electronics"
-                }
-            ]
-            result = supervisor_agent.run_pricing_cycle(sample_products)
-            return {
-                "status": "success",
-                "message": "Default pricing cycle completed",
-                "data": result
-            }
+            return {"status": "error", "message": "No product_name provided."}
     except Exception as e:
-        logger.error(f"Error in supervisor agent: {e}")
-        return {
-            "status": "error",
-            "message": f"Error: {str(e)}"
-        }
+        return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
     # Example usage

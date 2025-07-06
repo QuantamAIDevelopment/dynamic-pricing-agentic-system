@@ -63,7 +63,7 @@ def run_web_scraping_agent(input: dict) -> dict:
         logger.info(f"[WebScrapingAgent] Running web scraping agent for {domain} in {category}")
 
         # Search for the best product listing URL
-        search_input = {"domain": domain, "category": category}
+        search_input = {"domain": domain, "category": category, "product_name": product_name}
         logger.info(f"[WebScrapingAgent] Invoking search_product_listing_page tool with input: {search_input}")
         search_result = search_product_listing_page.invoke({"input": search_input})
         logger.info(f"[WebScrapingAgent] search_product_listing_page result: {search_result}")

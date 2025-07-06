@@ -16,6 +16,9 @@ app = FastAPI(title="Dynamic Pricing Agentic System", version="1.0.0")
 class SupervisorRequest(BaseModel):
     products: List[Dict[str, Any]]
 
+class ProductNameRequest(BaseModel):
+    product_name: str
+
 @app.on_event("startup")
 async def startup_event():
     try:
@@ -48,10 +51,10 @@ async def health_check():
     }
 
 @app.post("/agents/supervisor")
-async def run_supervisor(request: SupervisorRequest):
-    logger.info(f"[API] /agents/supervisor called with: {request}")
+async def run_supervisor(request: ProductNameRequest):
+    logger.info(f"[API] /agents/supervisor called with product_name: {request.product_name}")
     try:
-        result = run_supervisor_agent({"products": request.products})
+        result = run_supervisor_agent({"product_name": request.product_name})
         logger.info(f"[API] Supervisor agent result: {result}")
         if result["status"] == "success":
             return {
