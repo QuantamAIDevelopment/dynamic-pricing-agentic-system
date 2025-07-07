@@ -2,7 +2,7 @@ from langchain.agents import initialize_agent, AgentType
 from langchain.tools import Tool
 from tools.search_tool import search_product_listing_page
 from tools.scrape_tool import scrape_products, ScrapeProductInput
-from config.database import get_db, CompetitorPrice, SessionLocal
+from config.database import get_db, CompetitorPrice, SessionLocal, save_agent_decision
 from models.agent_decisions import AgentDecision
 
 import logging
@@ -125,8 +125,7 @@ def run_web_scraping_agent(input: dict) -> dict:
         logger.info(f"[WebScrapingAgent] Best product selected: {best_product}")
         # Log agent decision
         try:
-            db = SessionLocal()
-            decision = AgentDecision(
+            decision_dict = dict(
                 product_id=best_product.get("product_id"),
                 agent_name="WebScrapingAgent",
                 decision_type="scraping",
@@ -136,17 +135,10 @@ def run_web_scraping_agent(input: dict) -> dict:
                 explanation=f"Selected best product after scraping {domain}",
                 timestamp=datetime.now()
             )
-            db.add(decision)
-            try:
-                db.commit()
-            except Exception as e:
-                db.rollback()
-                logger.error(f"[WebScrapingAgent] Error committing agent decision: {e}")
+            with next(get_db()) as db:
+                save_agent_decision(db, decision_dict)
         except Exception as e:
             logger.error(f"[WebScrapingAgent] Error logging agent decision: {e}")
-        finally:
-            if 'db' in locals():
-                db.close()
         # Publish to Redis for Competitor Monitoring Agent
         try:
             if 'scraped_at' not in best_product:

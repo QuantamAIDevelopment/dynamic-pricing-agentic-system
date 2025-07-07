@@ -15,7 +15,7 @@ import redis
 from agents.web_scraping_agent import run_web_scraping_agent
 from agents.competitor_monitoring_agent import run_competitor_monitoring_agent, competitor_monitoring_agent
 from config.llm_config import llm
-from config.database import SessionLocal
+from config.database import SessionLocal, save_agent_decision, get_db
 from models.competitor_prices import CompetitorPrice
 from models.agent_decisions import AgentDecision
 
@@ -461,8 +461,7 @@ def get_best_competitor_price(product_name: str) -> dict:
     run_competitor_monitoring_agent(best_product)
     # Log agent decision
     try:
-        db = SessionLocal()
-        decision = AgentDecision(
+        decision_dict = dict(
             product_id=best_product.get("product_id"),
             agent_name="SupervisorAgent",
             decision_type="best_price_selection",
@@ -472,17 +471,10 @@ def get_best_competitor_price(product_name: str) -> dict:
             explanation="Selected best price from all competitors.",
             timestamp=datetime.now()
         )
-        db.add(decision)
-        try:
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"[SupervisorAgent] Error committing agent decision: {e}")
+        with next(get_db()) as db:
+            save_agent_decision(db, decision_dict)
     except Exception as e:
         logger.error(f"[SupervisorAgent] Error logging agent decision: {e}")
-    finally:
-        if 'db' in locals():
-            db.close()
     return {"status": "success", "data": best_product}
 
 def run_supervisor_agent(input_data: dict = None) -> dict:

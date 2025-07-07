@@ -25,12 +25,177 @@ class ScrapeProductInput(BaseModel):
     category: str = Field(..., description="The product category (e.g., 'books')")
     product_name: str = Field(None, description="Optional: precise product name to filter results")
 
+# Simple keyword-based category inference
+CATEGORY_KEYWORDS = {
+    'laptop': 'Electronics',
+    'phone': 'Electronics',
+    'mobile': 'Electronics',
+    'book': 'Books',
+    'bike': 'Automotive',
+    'car': 'Automotive',
+    'shoe': 'Footwear',
+    'shirt': 'Apparel',
+    't-shirt': 'Apparel',
+    'refrigerator': 'Appliances',
+    'tv': 'Electronics',
+    'television': 'Electronics',
+    'headphone': 'Electronics',
+    'camera': 'Electronics',
+    'watch': 'Accessories',
+    'bag': 'Accessories',
+    'tablet': 'Electronics',
+    'microwave': 'Appliances',
+    'washing machine': 'Appliances',
+    'ac ': 'Appliances',
+    'air conditioner': 'Appliances',
+    'sofa': 'Furniture',
+    'bed': 'Furniture',
+    'fan': 'Appliances',
+    'printer': 'Electronics',
+    'monitor': 'Electronics',
+    'mouse': 'Electronics',
+    'keyboard': 'Electronics',
+    'dress': 'Apparel',
+    'jeans': 'Apparel',
+    'tablet': 'Electronics',
+    'earbud': 'Electronics',
+    'speaker': 'Electronics',
+    'bottle': 'Home & Kitchen',
+    'mixer': 'Appliances',
+    'grinder': 'Appliances',
+    'oven': 'Appliances',
+    'cooktop': 'Appliances',
+    'guitar': 'Musical Instruments',
+    'piano': 'Musical Instruments',
+    'drum': 'Musical Instruments',
+    'cycle': 'Sports',
+    'bat': 'Sports',
+    'ball': 'Sports',
+    'helmet': 'Automotive',
+    'tyre': 'Automotive',
+    'oil': 'Automotive',
+    'tablet': 'Electronics',
+    'air fryer': 'Appliances',
+    'trimmer': 'Personal Care',
+    'shaver': 'Personal Care',
+    'perfume': 'Personal Care',
+    'cream': 'Personal Care',
+    'lotion': 'Personal Care',
+    'soap': 'Personal Care',
+    'toothpaste': 'Personal Care',
+    'toothbrush': 'Personal Care',
+    'bag': 'Accessories',
+    'wallet': 'Accessories',
+    'belt': 'Accessories',
+    'sandal': 'Footwear',
+    'slipper': 'Footwear',
+    'boot': 'Footwear',
+    'jacket': 'Apparel',
+    'sweater': 'Apparel',
+    'blender': 'Appliances',
+    'juicer': 'Appliances',
+    'camera': 'Electronics',
+    'tripod': 'Electronics',
+    'lens': 'Electronics',
+    'router': 'Electronics',
+    'modem': 'Electronics',
+    'projector': 'Electronics',
+    'tablet': 'Electronics',
+    'pen': 'Stationery',
+    'notebook': 'Stationery',
+    'diary': 'Stationery',
+    'lamp': 'Home & Kitchen',
+    'cooker': 'Appliances',
+    'pan': 'Home & Kitchen',
+    'mug': 'Home & Kitchen',
+    'plate': 'Home & Kitchen',
+    'bowl': 'Home & Kitchen',
+    'fork': 'Home & Kitchen',
+    'spoon': 'Home & Kitchen',
+    'knife': 'Home & Kitchen',
+    'towel': 'Home & Kitchen',
+    'blanket': 'Home & Kitchen',
+    'pillow': 'Home & Kitchen',
+    'mattress': 'Home & Kitchen',
+    'curtain': 'Home & Kitchen',
+    'carpet': 'Home & Kitchen',
+    'rug': 'Home & Kitchen',
+    'broom': 'Home & Kitchen',
+    'mop': 'Home & Kitchen',
+    'bucket': 'Home & Kitchen',
+    'brush': 'Home & Kitchen',
+    'detergent': 'Home & Kitchen',
+    'cleaner': 'Home & Kitchen',
+    'soap': 'Personal Care',
+    'shampoo': 'Personal Care',
+    'conditioner': 'Personal Care',
+    'toothpaste': 'Personal Care',
+    'toothbrush': 'Personal Care',
+    'razor': 'Personal Care',
+    'blade': 'Personal Care',
+    'comb': 'Personal Care',
+    'mirror': 'Personal Care',
+    'scissors': 'Personal Care',
+    'clipper': 'Personal Care',
+    'nail': 'Personal Care',
+    'file': 'Personal Care',
+    'tweezer': 'Personal Care',
+    'cotton': 'Personal Care',
+    'swab': 'Personal Care',
+    'bandage': 'Personal Care',
+    'ointment': 'Personal Care',
+    'tablet': 'Electronics',
+    'capsule': 'Personal Care',
+    'syrup': 'Personal Care',
+    'drop': 'Personal Care',
+    'spray': 'Personal Care',
+    'inhaler': 'Personal Care',
+    'mask': 'Personal Care',
+    'sanitizer': 'Personal Care',
+    'glove': 'Personal Care',
+    'thermometer': 'Personal Care',
+    'stethoscope': 'Personal Care',
+    'bp': 'Personal Care',
+    'monitor': 'Electronics',
+    'pulse': 'Personal Care',
+    'oximeter': 'Personal Care',
+    'wheelchair': 'Personal Care',
+    'walker': 'Personal Care',
+    'crutch': 'Personal Care',
+    'stick': 'Personal Care',
+    'hearing': 'Personal Care',
+    'aid': 'Personal Care',
+    'spectacle': 'Personal Care',
+    'glass': 'Personal Care',
+    'contact': 'Personal Care',
+    'lens': 'Personal Care',
+    'frame': 'Personal Care',
+    'case': 'Personal Care',
+    'solution': 'Personal Care',
+    'spray': 'Personal Care',
+    'drop': 'Personal Care',
+    'ointment': 'Personal Care',
+    'cream': 'Personal Care',
+    'gel': 'Personal Care',
+    'powder': 'Personal Care',
+}
+
+def infer_category_from_name(product_name: str) -> str:
+    if not product_name:
+        return "Unknown"
+    name_lower = product_name.lower()
+    for keyword, category in CATEGORY_KEYWORDS.items():
+        if keyword in name_lower:
+            logger.info(f"[Category Inference] Inferred category '{category}' from product name '{product_name}' using keyword '{keyword}'")
+            return category
+    return "Unknown"
+
 # Move scraping logic to a helper function
 
 def scrape_products_core(url: str, competitor: str, category: str, product_name: str = None) -> list[dict]:
     options = Options()
     # For debugging, you can comment out headless mode
-    # options.add_argument('--headless')
+    options.add_argument('--headless')
     options.add_argument('--disable-gpu')
     options.add_argument('--no-sandbox')
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
@@ -167,8 +332,8 @@ def scrape_products_core(url: str, competitor: str, category: str, product_name:
                                     break
                         except Exception:
                             category_value = None
-                        if not category_value:
-                            category_value = "Unknown"
+                        if not category_value or category_value == "Unknown":
+                            category_value = infer_category_from_name(name)
                         scraped_names.append(name)
                         if name and detail_price is not None:
                             product = {
@@ -258,8 +423,8 @@ def scrape_products_core(url: str, competitor: str, category: str, product_name:
                                 break
                     except Exception:
                         category_value = None
-                    if not category_value:
-                        category_value = "Unknown"
+                    if not category_value or category_value == "Unknown":
+                        category_value = infer_category_from_name(name)
                     scraped_names.append(name)
                     asin = card.get_attribute('data-asin') or f"{competitor}-{name[:30]}"
                     product = {

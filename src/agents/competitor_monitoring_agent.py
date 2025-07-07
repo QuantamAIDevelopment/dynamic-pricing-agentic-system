@@ -9,7 +9,7 @@ from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone, ServerlessSpec
 import redis
 
-from config.database import get_db, SessionLocal
+from config.database import get_db, SessionLocal, save_agent_decision
 from models.competitor_prices import CompetitorPrice
 from config.settings import settings
 from models.agent_decisions import AgentDecision
@@ -123,8 +123,7 @@ class CompetitorMonitoringAgent:
             logger.info(f"[CompetitorMonitoringAgent] Successfully processed competitor data for {product_data.get('product_name', 'Unknown')}")
             # Log agent decision
             try:
-                db = SessionLocal()
-                decision = AgentDecision(
+                decision_dict = dict(
                     product_id=product_data.get("product_id"),
                     agent_name="CompetitorMonitoringAgent",
                     decision_type="monitoring",
@@ -134,17 +133,10 @@ class CompetitorMonitoringAgent:
                     explanation="Processed competitor data, created embedding, and stored in DB/Pinecone.",
                     timestamp=datetime.now()
                 )
-                db.add(decision)
-                try:
-                    db.commit()
-                except Exception as e:
-                    db.rollback()
-                    logger.error(f"[CompetitorMonitoringAgent] Error committing agent decision: {e}")
+                with next(get_db()) as db:
+                    save_agent_decision(db, decision_dict)
             except Exception as e:
                 logger.error(f"[CompetitorMonitoringAgent] Error logging agent decision: {e}")
-            finally:
-                if 'db' in locals():
-                    db.close()
         except Exception as e:
             logger.error(f"[CompetitorMonitoringAgent] Error processing competitor data: {e}")
     

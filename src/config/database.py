@@ -5,6 +5,7 @@ from config.settings import settings
 from models.competitor_prices import CompetitorPrice
 from models.base import Base
 from models.products import Product
+from models.agent_decisions import AgentDecision
 import logging
 
 # Configure logging
@@ -54,4 +55,14 @@ def save_competitor_prices(db, products):
     except Exception as e:
         db.rollback()
         logger.error(f"Error saving competitor prices: {e}")
+        raise
+
+def save_agent_decision(db, decision_dict):
+    try:
+        decision = AgentDecision(**decision_dict)
+        db.add(decision)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error saving agent decision: {e}")
         raise
