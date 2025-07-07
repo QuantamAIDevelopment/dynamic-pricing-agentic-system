@@ -12,6 +12,7 @@ import time
 import difflib
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import hashlib
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -129,22 +130,51 @@ def scrape_products_core(url: str, competitor: str, category: str, product_name:
                         # Try multiple selectors for price
                         detail_price = None
                         price_selectors = [
-                            'div.Nx9bqj._4b5DiR',  # New: main product price
-                            'div._30jeq3', 'div._1vC4OE', 'div._25b18c ._30jeq3', 'div._30jeq3._16Jk6d'
+                            'div.Nx9bqj._4b5DiR',  # Main product price (from provided HTML)
+                            'div._4b5DiR',         # Fallback: price class without Nx9bqj
+                            'div.cN1yYO .Nx9bqj',  # Fallback: price inside cN1yYO
+                            'div._30jeq3', 'div._1vC4OE', 'div._25b18c ._30jeq3', 'div._30jeq3._16Jk6d',
+                            'div._16Jk6d', 'div._3I9_wc', 'div._2p6lqe', 'div._2Tpdn3',
+                            'div._1_WHN1', 'div._2r_T1I', 'div._1AtVbE ._30jeq3',
+                            'div._1vC4OE._2r_T1I', 'div._30jeq3._1_WHN1',
                         ]
                         for sel in price_selectors:
                             try:
                                 price_text = card.find_element(By.CSS_SELECTOR, sel).text
+                                logger.info(f"[Flipkart Scraper] Found price text '{price_text}' using selector '{sel}'")
                                 detail_price = float(price_text.replace('₹', '').replace(',', '').strip())
                                 break
                             except Exception:
                                 continue
+                        # If detail_price is still None, log the card HTML for debugging
+                        if detail_price is None:
+                            try:
+                                card_html = card.get_attribute('outerHTML')
+                                logger.error(f"[Flipkart Scraper] Could not find price for card. HTML: {card_html}")
+                                with open('flipkart_price_debug.html', 'a', encoding='utf-8') as f:
+                                    f.write(card_html + '\n\n')
+                            except Exception as e:
+                                logger.error(f"[Flipkart Scraper] Error logging card HTML: {e}")
+                        # Try to extract category from breadcrumbs or page metadata
+                        category_value = None
+                        try:
+                            # Flipkart: Breadcrumbs are often in '._2whKao' or '._1MR4o5' classes
+                            breadcrumb_selectors = ['._2whKao', '._1MR4o5', 'nav.breadcrumbs', '.breadcrumb']
+                            for sel in breadcrumb_selectors:
+                                elems = driver.find_elements(By.CSS_SELECTOR, sel)
+                                if elems:
+                                    category_value = ' > '.join([e.text for e in elems if e.text])
+                                    break
+                        except Exception:
+                            category_value = None
+                        if not category_value:
+                            category_value = "Unknown"
                         scraped_names.append(name)
                         if name and detail_price is not None:
                             product = {
-                                "product_id": name[:50],
+                                "product_id": hashlib.sha1(product_url.encode()).hexdigest()[:20],
                                 "product_name": name,
-                                "category": category,
+                                "category": category_value,
                                 "competitor_name": competitor,
                                 "competitor_price": detail_price,
                                 "product_url": product_url,
@@ -154,24 +184,18 @@ def scrape_products_core(url: str, competitor: str, category: str, product_name:
                     except Exception as e:
                         continue
                 logger.info(f"Scraped product names: {scraped_names}")
-                # Fuzzy match for product_name
-                best_product = None
+                # Substring match for product_name (case-insensitive)
+                matched_product = None
                 if product_name and products:
-                    names = [p["product_name"] for p in products]
-                    matches = difflib.get_close_matches(product_name, names, n=1, cutoff=0.5)
-                    if matches:
-                        for p in products:
-                            if p["product_name"] == matches[0]:
-                                best_product = p
-                                break
-                if best_product:
-                    products = [best_product]
-                elif products:
-                    products = [products[0]]
+                    for p in products:
+                        if product_name.strip().lower() in p["product_name"].strip().lower():
+                            matched_product = p
+                            logger.info(f"[Scraper] Matched product: '{p['product_name']}' for input '{product_name}'")
+                            break
+                if matched_product:
+                    products = [matched_product]
                 else:
-                    with open('flipkart_no_products_debug.html', 'w', encoding='utf-8') as f:
-                        f.write(driver.page_source)
-                    logger.error("No products found on Flipkart page after listing scrape. Saved page source to flipkart_no_products_debug.html.")
+                    products = []
                 # Store found products in the database
                 if products:
                     with next(get_db()) as db:
@@ -223,12 +247,25 @@ def scrape_products_core(url: str, competitor: str, category: str, product_name:
                         price_tag = card.find_element(By.CSS_SELECTOR, 'span.a-price')
                         price = float(price_tag.text.replace('₹', '').replace(',', '').replace('$', '').strip())
                     name = name_tag.text.strip()
+                    # Try to extract category from breadcrumbs or page metadata (Amazon)
+                    category_value = None
+                    try:
+                        breadcrumb_selectors = ['nav.a-breadcrumb', '.a-unordered-list.a-horizontal.a-size-small', '.breadcrumb']
+                        for sel in breadcrumb_selectors:
+                            elems = card.find_elements(By.CSS_SELECTOR, sel)
+                            if elems:
+                                category_value = ' > '.join([e.text for e in elems if e.text])
+                                break
+                    except Exception:
+                        category_value = None
+                    if not category_value:
+                        category_value = "Unknown"
                     scraped_names.append(name)
                     asin = card.get_attribute('data-asin') or f"{competitor}-{name[:30]}"
                     product = {
                         "product_id": asin,
                         "product_name": name,
-                        "category": category,
+                        "category": category_value,
                         "competitor_name": competitor,
                         "competitor_price": price,
                         "scraped_at": datetime.utcnow()
@@ -237,31 +274,28 @@ def scrape_products_core(url: str, competitor: str, category: str, product_name:
                 except Exception as e:
                     continue
             logger.info(f"Scraped product names: {scraped_names}")
-            # Fuzzy match for product_name
-            best_product = None
+            # Substring match for product_name (case-insensitive) for Amazon
+            matched_product = None
             if product_name and products:
-                names = [p["product_name"] for p in products]
-                matches = difflib.get_close_matches(product_name, names, n=1, cutoff=0.5)
-                if matches:
-                    for p in products:
-                        if p["product_name"] == matches[0]:
-                            best_product = p
-                            break
-            if best_product:
-                products = [best_product]
-            elif products:
-                products = [products[0]]
+                for p in products:
+                    if product_name.strip().lower() in p["product_name"].strip().lower():
+                        matched_product = p
+                        logger.info(f"[Scraper] Matched product: '{p['product_name']}' for input '{product_name}'")
+                        break
+            if matched_product:
+                products = [matched_product]
             else:
-                with open('amazon_no_products_debug.html', 'w', encoding='utf-8') as f:
-                    f.write(driver.page_source)
-                logger.error("No products found on Amazon page after two-step search. Saved page source to amazon_no_products_debug.html.")
-                if 'robot check' in driver.page_source.lower() or 'captcha' in driver.page_source.lower():
-                    logger.error("Amazon page may be showing a CAPTCHA or robot check. Try running in non-headless mode or using proxies.")
+                products = []
             # Store found products in the database
             if products:
                 with next(get_db()) as db:
                     save_competitor_prices(db, products)
-        return products[:1] if products else []
+            return products[:1] if products else []
+        else:
+            with open('unknown_platform_debug.html', 'w', encoding='utf-8') as f:
+                f.write(driver.page_source)
+            logger.error("Unknown platform. Saved page source to unknown_platform_debug.html.")
+            return []
     except Exception as e:
         logger.error(f"Error scraping {url} with Selenium: {e}")
         return []

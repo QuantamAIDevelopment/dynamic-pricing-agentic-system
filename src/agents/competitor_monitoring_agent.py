@@ -12,6 +12,7 @@ import redis
 from config.database import get_db, SessionLocal
 from models.competitor_prices import CompetitorPrice
 from config.settings import settings
+from models.agent_decisions import AgentDecision
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -120,6 +121,30 @@ class CompetitorMonitoringAgent:
             # Store in PostgreSQL (if not already done by web scraping agent)
             self._store_in_postgresql(product_data)
             logger.info(f"[CompetitorMonitoringAgent] Successfully processed competitor data for {product_data.get('product_name', 'Unknown')}")
+            # Log agent decision
+            try:
+                db = SessionLocal()
+                decision = AgentDecision(
+                    product_id=product_data.get("product_id"),
+                    agent_name="CompetitorMonitoringAgent",
+                    decision_type="monitoring",
+                    input_data=json.dumps(product_data),
+                    output_data=json.dumps({"embedding": embedding}),
+                    confidence_score=None,
+                    explanation="Processed competitor data, created embedding, and stored in DB/Pinecone.",
+                    timestamp=datetime.now()
+                )
+                db.add(decision)
+                try:
+                    db.commit()
+                except Exception as e:
+                    db.rollback()
+                    logger.error(f"[CompetitorMonitoringAgent] Error committing agent decision: {e}")
+            except Exception as e:
+                logger.error(f"[CompetitorMonitoringAgent] Error logging agent decision: {e}")
+            finally:
+                if 'db' in locals():
+                    db.close()
         except Exception as e:
             logger.error(f"[CompetitorMonitoringAgent] Error processing competitor data: {e}")
     

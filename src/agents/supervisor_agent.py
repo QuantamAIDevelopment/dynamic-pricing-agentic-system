@@ -17,6 +17,7 @@ from agents.competitor_monitoring_agent import run_competitor_monitoring_agent, 
 from config.llm_config import llm
 from config.database import SessionLocal
 from models.competitor_prices import CompetitorPrice
+from models.agent_decisions import AgentDecision
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -458,6 +459,30 @@ def get_best_competitor_price(product_name: str) -> dict:
     best_product = min(results, key=extract_price)
     # Save best value to DB via competitor monitoring agent
     run_competitor_monitoring_agent(best_product)
+    # Log agent decision
+    try:
+        db = SessionLocal()
+        decision = AgentDecision(
+            product_id=best_product.get("product_id"),
+            agent_name="SupervisorAgent",
+            decision_type="best_price_selection",
+            input_data=json.dumps({"competitors": competitors}),
+            output_data=json.dumps(best_product),
+            confidence_score=None,
+            explanation="Selected best price from all competitors.",
+            timestamp=datetime.now()
+        )
+        db.add(decision)
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"[SupervisorAgent] Error committing agent decision: {e}")
+    except Exception as e:
+        logger.error(f"[SupervisorAgent] Error logging agent decision: {e}")
+    finally:
+        if 'db' in locals():
+            db.close()
     return {"status": "success", "data": best_product}
 
 def run_supervisor_agent(input_data: dict = None) -> dict:
