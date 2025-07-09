@@ -460,27 +460,39 @@ if page == "Dashboard":
 if page == "Add Product":
     st.title("Add Product")
     with st.form("add_product_form"):
+        id = st.text_input("Product ID", placeholder="Enter Product ID")
         name = st.text_input("Product Name", placeholder="Enter Product Name")
         category = st.text_input("Category", placeholder="Enter Category")
-        competitor = st.text_input("Competitor", placeholder="Enter Competitor Name")
-        price = st.number_input("Price", min_value=0.0, step=0.01, placeholder="Enter Product Price")
-        competitor_price = st.number_input("Competitor Price", min_value=0.0, step=0.01, placeholder="Enter Competitor Price")
-        competitor_url = st.text_input("Competitor URL", placeholder="Enter Competitor URL")
+        base_price = st.number_input("Base Price", min_value=0.0, step=0.01, format="%0.2f")
+        current_price = st.number_input("Current Price", min_value=0.0, step=0.01, format="%0.2f")
+        cost_price = st.number_input("Cost Price", min_value=0.0, step=0.01, format="%0.2f")
+        stock_level = st.number_input("Stock Level", min_value=0, step=1)
+        demand_score = st.number_input("Demand Score", min_value=0.0, max_value=1.0, step=0.01, format="%0.2f")
+        sales_velocity = st.number_input("Sales Velocity", min_value=0.0, step=0.01, format="%0.2f")
+        price_elasticity = st.number_input("Price Elasticity", min_value=0.0, step=0.01, format="%0.2f")
+        market_position = st.selectbox("Market Position", ["premium", "mid-range", "budget"], index=1)
+        is_active = st.checkbox("Is Active", value=True)
         submitted = st.form_submit_button("Add Product")
         if submitted:
             product = {
+                "id": id,
                 "name": name,
                 "category": category,
-                "competitor": competitor,
-                "price": price,
-                "competitor_price": competitor_price,
-                "competitor_url": competitor_url
+                "base_price": base_price,
+                "current_price": current_price,
+                "cost_price": cost_price,
+                "stock_level": stock_level,
+                "demand_score": demand_score,
+                "sales_velocity": sales_velocity,
+                "price_elasticity": price_elasticity,
+                "market_position": market_position,
+                "is_active": is_active
             }
             result = add_product_api(product)
             if result["status"] == "success":
                 st.success("Product added!")
                 # Add to local list
-                st.session_state['products'].append({"name": name, "id": name})
+                st.session_state['products'].append({"name": name, "id": id})
             else:
                 st.error(result.get("message", "Failed to add product."))
 

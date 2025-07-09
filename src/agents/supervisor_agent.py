@@ -437,8 +437,8 @@ def get_best_competitor_price(product_name: str) -> dict:
     """
     For a given product name, scrape both Amazon and Flipkart, compare prices, and return the best value.
     """
-    from agents.web_scraping_agent import run_web_scraping_agent
-    from agents.competitor_monitoring_agent import run_competitor_monitoring_agent
+    from src.agents.web_scraping_agent import run_web_scraping_agent
+    from src.agents.competitor_monitoring_agent import run_competitor_monitoring_agent
     competitors = [
         {"domain": "amazon.in", "category": "", "product_name": product_name},
         {"domain": "flipkart.com", "category": "", "product_name": product_name}

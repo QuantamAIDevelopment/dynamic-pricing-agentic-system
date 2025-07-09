@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 import logging
 import os
@@ -48,14 +49,84 @@ class InventoryAnalysisRequest(BaseModel):
     days_ahead: int = 30
 
 class ProductCreateRequest(BaseModel):
+    id: str
     name: str
     category: str = "Unknown"
-    competitor: str = "Unknown"
-    price: float = 0.0
-    competitor_price: float = 0.0
-    competitor_url: str = ""
-    # Add more fields as needed
+    base_price: float = 0.0
+    current_price: float = 0.0
+    cost_price: float = 0.0
+    stock_level: int = 0
+    demand_score: float = 0.0
+    sales_velocity: float = 0.0
+    price_elasticity: float = 0.0
+    market_position: str = "mid-range"
+    is_active: bool = True
+    # last_updated is set by DB or system, not user
 
+# --- Add Pydantic models for all DB models ---
+class ProductResponse(BaseModel):
+    id: str
+    name: str
+    category: str
+    base_price: float
+    current_price: float
+    cost_price: float
+    stock_level: int
+    demand_score: float
+    sales_velocity: float
+    price_elasticity: float
+    market_position: str
+    is_active: bool
+    last_updated: Optional[datetime]
+
+class CompetitorPriceResponse(BaseModel):
+    product_id: str
+    product_name: str
+    category: str
+    competitor_name: str
+    competitor_price: float
+    competitor_url: str
+    availability: bool
+    shipping_cost: Optional[float]
+    rating: Optional[float]
+    review_count: Optional[int]
+    scraped_at: Optional[datetime]
+    confidence_score: float
+
+class AgentDecisionResponse(BaseModel):
+    product_id: str
+    agent_name: str
+    decision_type: str
+    input_data: str
+    output_data: str
+    confidence_score: float
+    explanation: str
+    reflection: str
+    reasoning_chain: Any
+    timestamp: Optional[datetime]
+
+class PriceHistoryResponse(BaseModel):
+    product_id: str
+    old_price: float
+    new_price: float
+    change_reason: str
+    agent_name: str
+    confidence_score: float
+    timestamp: Optional[datetime]
+
+class SalesDataResponse(BaseModel):
+    product_id: str
+    quantity_sold: int
+    sale_price: float
+    sale_date: Optional[datetime]
+    demand_signal: float
+    customer_segment: Optional[str]
+    sales_channel: Optional[str]
+    discount_applied: Optional[float]
+    transaction_id: Optional[str]
+
+# --- Update endpoints to use these models for input/output ---
+# Example for /products (GET, POST, etc.)
 @app.on_event("startup")
 async def startup_event():
     try:
@@ -368,19 +439,36 @@ async def run_comprehensive_analysis(request: ProductIdRequest):
         logger.error(f"[API] Error in comprehensive analysis: {e}")
         raise HTTPException(status_code=500, detail=f"Comprehensive analysis failed: {str(e)}")
 
+@app.get("/products/{product_id}", response_model=ProductResponse)
+async def get_product(product_id: str):
+    product = Product.get(product_id)  # Replace with your ORM's get method
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product.to_dict()
+
+@app.get("/products", response_model=List[ProductResponse])
+async def list_products():
+    products = Product.all()  # Replace with your ORM's all method
+    return [p.to_dict() for p in products]
+
 @app.post("/products")
 async def add_product(product: ProductCreateRequest):
     try:
-        # Create and store the product in the DB
         new_product = Product(
+            id=product.id,
             name=product.name,
             category=product.category,
-            competitor=product.competitor,
-            price=product.price,
-            competitor_price=product.competitor_price,
-            competitor_url=product.competitor_url
+            base_price=product.base_price,
+            current_price=product.current_price,
+            cost_price=product.cost_price,
+            stock_level=product.stock_level,
+            demand_score=product.demand_score,
+            sales_velocity=product.sales_velocity,
+            price_elasticity=product.price_elasticity,
+            market_position=product.market_position,
+            is_active=product.is_active
         )
-        new_product.save()  # or your ORM's create method
+        new_product.save()
         return {"status": "success", "product": new_product.to_dict()}
     except Exception as e:
         return {"status": "error", "message": str(e)}

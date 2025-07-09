@@ -11,6 +11,6 @@ def check_db_connection():
         return False
 
 def recreate_tables():
-    from ..config.database import Base, engine
+    from src.config.database import Base, engine
     Base.metadata.drop_all(bind=engine)
     init_db()
