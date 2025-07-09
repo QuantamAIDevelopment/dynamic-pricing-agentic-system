@@ -285,3 +285,70 @@ For support and questions:
 ---
 
 **Built with ❤️ for intelligent e-commerce pricing**
+
+## API Flow & Endpoints for UI Development
+
+### Supervisor Agent
+- `POST /agents/supervisor` — Run supervisor agent for a product
+- `GET /agents/supervisor/history/{product_id}` — Get pricing history for a product
+
+### Pricing Decision Agent
+- `POST /agents/pricing/analyze` — Analyze pricing for a product
+- `GET /agents/pricing/recommendations/{product_id}` — Get pricing recommendations
+- `GET /agents/pricing/optimal-price/{product_id}` — Get optimal price
+
+### Demand Analysis Agent
+- `POST /agents/demand/analyze` — Analyze demand for a product
+- `GET /agents/demand/score/{product_id}` — Get demand score
+
+### Inventory Tracking Agent
+- `POST /agents/inventory/analyze` — Analyze inventory for a product
+- `GET /agents/inventory/health/{product_id}` — Get inventory health
+- `GET /agents/inventory/optimize/{product_id}` — Get inventory optimization
+- `POST /agents/inventory-tracking` — Run inventory tracking
+
+### Competitor Monitoring Agent
+- `POST /agents/competitor/monitor` — Monitor competitors for a product
+- `GET /agents/competitor-monitoring/similar/{product_name}` — Get similar products
+
+### Comprehensive Analysis
+- `POST /agents/comprehensive-analysis` — Run all analyses for a product
+
+---
+
+### Example Request/Response
+
+#### POST /agents/pricing/analyze
+**Request:**
+```json
+{
+  "product_id": "12345",
+  "include_forecast": true
+}
+```
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Pricing analysis completed successfully",
+  "data": { /* analysis results */ }
+}
+```
+
+#### GET /agents/pricing/recommendations/{product_id}
+**Response:**
+```json
+{
+  "status": "success",
+  "product_id": "12345",
+  "recommendations": [ /* recommendations */ ]
+}
+```
+
+---
+
+### Flow Example for UI
+1. User selects a product.
+2. UI calls `POST /agents/pricing/analyze` to get analysis.
+3. UI displays results and recommendations from `GET /agents/pricing/recommendations/{product_id}`.
+4. UI can show demand, inventory, and competitor info using the respective endpoints above.
