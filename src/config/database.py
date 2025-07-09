@@ -47,7 +47,13 @@ def save_competitor_prices(db, products):
                 category=product.get("category", None),
                 competitor_name=product["competitor_name"],
                 competitor_price=product["competitor_price"],
-                scraped_at=product["scraped_at"]
+                scraped_at=product["scraped_at"],
+                competitor_url=product.get("competitor_url", None),
+                availability=product.get("availability", True),
+                shipping_cost=product.get("shipping_cost", None),
+                rating=product.get("rating", None),
+                review_count=product.get("review_count", None),
+                confidence_score=product.get("confidence_score", 1.0)
             ))
         db.commit()
     except Exception as e:
@@ -113,4 +119,14 @@ def save_feedback_log(db, feedback_log_dict):
     except Exception as e:
         db.rollback()
         logger.error(f"Error saving feedback log: {e}")
+        raise
+
+def save_sales_data(db, sales_data_dict):
+    try:
+        sales_data = SalesData(**sales_data_dict)
+        db.add(sales_data)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error saving sales data: {e}")
         raise

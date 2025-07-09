@@ -371,22 +371,28 @@ def _generate_overall_assessment(results: dict) -> dict:
     
     # Assess pricing
     if results["pricing_analysis"] and "error" not in results["pricing_analysis"]:
-        pricing_data = results["pricing_analysis"].get("data", {})
+        pricing_data = results["pricing_analysis"].get("data", {}) or {}
         if pricing_data.get("price_change_percent", 0) > 5:
             assessment["priority_actions"].append("Review pricing strategy - significant price change detected")
     
     # Assess demand
     if results["demand_analysis"] and "error" not in results["demand_analysis"]:
-        demand_data = results["demand_analysis"]
-        if demand_data.get("overall_demand_assessment", {}).get("demand_level") == "high":
+        demand_data = results["demand_analysis"] or {}
+        if not isinstance(demand_data, dict):
+            demand_data = {}
+        overall_demand = demand_data.get("overall_demand_assessment", {}) or {}
+        demand_level = overall_demand.get("demand_level")
+        if demand_level == "high":
             assessment["recommendations"].append("High demand detected - consider inventory optimization")
-        elif demand_data.get("overall_demand_assessment", {}).get("demand_level") == "low":
+        elif demand_level == "low":
             assessment["recommendations"].append("Low demand detected - consider promotional activities")
     
     # Assess inventory
     if results["inventory_analysis"] and "error" not in results["inventory_analysis"]:
-        inventory_data = results["inventory_analysis"].get("data", {})
-        if inventory_data.get("overall_inventory_assessment", {}).get("urgency_level") == "critical":
+        inventory_data = results["inventory_analysis"].get("data", {}) or {}
+        overall_inventory = inventory_data.get("overall_inventory_assessment", {}) or {}
+        urgency_level = overall_inventory.get("urgency_level")
+        if urgency_level == "critical":
             assessment["priority_actions"].append("CRITICAL: Immediate inventory restock required")
     
     # Determine overall status
