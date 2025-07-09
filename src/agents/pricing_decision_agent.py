@@ -1,14 +1,14 @@
-from config.database import get_db, Product, CompetitorPrice
-from models.price_history import PriceHistory
-from models.agent_decisions import AgentDecision
-from tools.pricing_tools import (
+from src.config.database import get_db, Product, CompetitorPrice
+from src.models.price_history import PriceHistory
+from src.models.agent_decisions import AgentDecision
+from src.tools.pricing_tools import (
     calculate_price_elasticity,
     analyze_competitor_pricing,
     calculate_optimal_price,
     get_pricing_recommendations
 )
-from tools.demand_tools import calculate_demand_score
-from tools.inventory_tools import analyze_inventory_health
+from src.tools.demand_tools import calculate_demand_score
+from src.tools.inventory_tools import analyze_inventory_health
 import logging
 from datetime import datetime
 import redis
@@ -25,6 +25,9 @@ def decide_price(competitor_prices, demand_score, inventory_level, base_price):
     Enhanced with reflection and reasoning chain.
     """
     reasoning_chain = []
+    # Ensure all price-related values are floats
+    base_price = float(base_price)
+    competitor_prices = [float(cp) for cp in competitor_prices]
     
     # Step 1: Analyze demand score
     reasoning_chain.append("Step 1: Analyzing demand score")
@@ -71,11 +74,11 @@ def decide_price(competitor_prices, demand_score, inventory_level, base_price):
     
     # Step 4: Calculate final price
     reasoning_chain.append("Step 4: Calculating final price")
-    new_price = base_price * demand_factor * inventory_factor * competitor_factor
+    new_price = float(base_price) * float(demand_factor) * float(inventory_factor) * float(competitor_factor)
     
     # Ensure reasonable bounds
-    new_price = max(new_price, base_price * 0.8)  # Don't go below 80% of base price
-    new_price = min(new_price, base_price * 1.3)  # Don't go above 130% of base price
+    new_price = max(new_price, float(base_price) * 0.8)  # Don't go below 80% of base price
+    new_price = min(new_price, float(base_price) * 1.3)  # Don't go above 130% of base price
     
     reasoning_chain.append(f"Final price calculated: ${new_price:.2f}")
     

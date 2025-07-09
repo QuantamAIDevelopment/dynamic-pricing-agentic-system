@@ -17,3 +17,7 @@ requests
 scrapy
 numpy
 pandas
+streamlit 
+requests
+pytest 
+httpx

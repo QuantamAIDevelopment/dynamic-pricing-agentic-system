@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Numeric, ForeignKey, String, DateTime, Text, Boolean
-from models.base import BaseModel
+from src.models.base import BaseModel
 
 class CompetitorPrice(BaseModel):
     __tablename__ = "competitor_prices"

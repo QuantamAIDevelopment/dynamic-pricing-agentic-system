@@ -1,5 +1,5 @@
-from config.database import get_db
-from core.database import init_db
+from src.config.database import get_db
+from src.core.database import init_db
 from sqlalchemy.exc import SQLAlchemyError
 
 def check_db_connection():

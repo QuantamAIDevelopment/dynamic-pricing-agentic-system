@@ -1,9 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from config.settings import settings
-from models import *
-from models.base import Base
+from src.config.settings import settings
+from src.models import *
+from src.models.base import Base
 import logging
 
 # Configure logging

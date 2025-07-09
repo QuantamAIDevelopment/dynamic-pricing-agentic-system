@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Numeric, DateTime, Integer, ForeignKey
-from models.base import BaseModel
+from src.models.base import BaseModel
 
 class PriceHistory(BaseModel):
     __tablename__ = "price_history"

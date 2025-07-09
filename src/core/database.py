@@ -1,7 +1,7 @@
 from sqlalchemy.exc import SQLAlchemyError
-from config.database import SessionLocal, engine, Base
+from src.config.database import SessionLocal, engine, Base
 # Ensure all models are imported so their tables are created
-from models import *
+from src.models import *
 import time
 import logging
 

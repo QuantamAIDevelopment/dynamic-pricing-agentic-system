@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
-from config.database import get_db, save_competitor_prices
+from src.config.database import get_db, save_competitor_prices
 import logging
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options

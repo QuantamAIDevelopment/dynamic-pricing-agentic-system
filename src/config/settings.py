@@ -14,6 +14,15 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "dynamic-pricing-db"
     SQLALCHEMY_DATABASE_URI: Optional[str] = None
 
+    OPENROUTER_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
+    FIREWORKS_API_KEY: str = ""
+    TOGETHER_API_KEY: str = ""
+    CHROMA_OPENAI_API_KEY: str = ""
+    PINECONE_API_KEY: str = ""
+    PINECONE_ENVIRONMENT: str = ""
+    USE_GROQ: bool = False
+
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
     def assemble_db_connection(cls, v: Optional[str], values: dict[str, str]) -> str:
         if isinstance(v, str) and v:

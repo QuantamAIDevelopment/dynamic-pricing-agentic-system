@@ -12,12 +12,12 @@ from langchain.memory import ConversationBufferMemory
 from langchain.schema import HumanMessage, AIMessage
 import redis
 
-from agents.web_scraping_agent import run_web_scraping_agent
-from agents.competitor_monitoring_agent import run_competitor_monitoring_agent, competitor_monitoring_agent
-from config.llm_config import llm
-from config.database import SessionLocal, save_agent_decision, get_db
-from models.competitor_prices import CompetitorPrice
-from models.agent_decisions import AgentDecision
+from src.agents.web_scraping_agent import run_web_scraping_agent
+from src.agents.competitor_monitoring_agent import run_competitor_monitoring_agent, competitor_monitoring_agent
+from src.config.llm_config import llm
+from src.config.database import SessionLocal, save_agent_decision, get_db
+from src.models.competitor_prices import CompetitorPrice
+from src.models.agent_decisions import AgentDecision
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -4,14 +4,15 @@ from typing import List, Dict, Any, Optional
 import logging
 import os
 
-from agents import run_supervisor_agent
-from agents.pricing_decision_agent import run_pricing_decision_agent
-from agents.demand_analysis_agent import analyze_demand_score
-from agents.inventory_tracking_agent import run_inventory_tracking_agent
-from agents.competitor_monitoring_agent import run_competitor_monitoring_agent
-from tools.pricing_tools import get_pricing_recommendations, calculate_optimal_price
-from tools.demand_tools import calculate_demand_score as calculate_demand_score_tool
-from tools.inventory_tools import analyze_inventory_health, optimize_inventory_levels
+from src.agents import run_supervisor_agent
+from src.agents.pricing_decision_agent import run_pricing_decision_agent
+from src.agents.demand_analysis_agent import analyze_demand_score
+from src.agents.inventory_tracking_agent import run_inventory_tracking_agent
+from src.agents.competitor_monitoring_agent import run_competitor_monitoring_agent
+from src.tools.pricing_tools import get_pricing_recommendations, calculate_optimal_price
+from src.tools.demand_tools import calculate_demand_score as calculate_demand_score_tool
+from src.tools.inventory_tools import analyze_inventory_health, optimize_inventory_levels
+from src.models.products import Product  # adjust import as needed
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -46,10 +47,19 @@ class InventoryAnalysisRequest(BaseModel):
     product_id: str
     days_ahead: int = 30
 
+class ProductCreateRequest(BaseModel):
+    name: str
+    category: str = "Unknown"
+    competitor: str = "Unknown"
+    price: float = 0.0
+    competitor_price: float = 0.0
+    competitor_url: str = ""
+    # Add more fields as needed
+
 @app.on_event("startup")
 async def startup_event():
     try:
-        from core.database import init_db
+        from src.core.database import init_db
         init_db()
         logger.info("Dynamic Pricing Agentic System started successfully")
     except Exception as e:
@@ -357,6 +367,23 @@ async def run_comprehensive_analysis(request: ProductIdRequest):
     except Exception as e:
         logger.error(f"[API] Error in comprehensive analysis: {e}")
         raise HTTPException(status_code=500, detail=f"Comprehensive analysis failed: {str(e)}")
+
+@app.post("/products")
+async def add_product(product: ProductCreateRequest):
+    try:
+        # Create and store the product in the DB
+        new_product = Product(
+            name=product.name,
+            category=product.category,
+            competitor=product.competitor,
+            price=product.price,
+            competitor_price=product.competitor_price,
+            competitor_url=product.competitor_url
+        )
+        new_product.save()  # or your ORM's create method
+        return {"status": "success", "product": new_product.to_dict()}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 def _generate_overall_assessment(results: dict) -> dict:
     """

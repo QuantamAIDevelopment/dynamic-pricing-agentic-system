@@ -2,11 +2,11 @@ from typing import Dict, List, Any, Optional
 import logging
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from models.products import Product
-from models.competitor_prices import CompetitorPrice
-from models.sales_data import SalesData
-from models.price_history import PriceHistory
-from config.database import get_db
+from src.models.products import Product
+from src.models.competitor_prices import CompetitorPrice
+from src.models.sales_data import SalesData
+from src.models.price_history import PriceHistory
+from src.config.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -152,31 +152,25 @@ def calculate_optimal_price(product_id: str) -> Dict[str, Any]:
             product = db.query(Product).filter(Product.id == product_id).first()
             if not product:
                 return {"error": "Product not found"}
-            
             # Get current metrics
             cost_price = float(product.cost_price or 0)
             current_price = float(product.current_price or product.base_price)
             demand_score = float(product.demand_score or 0.5)
             elasticity = float(product.price_elasticity or -1.0)
-            
             # Get competitor analysis
             competitor_analysis = analyze_competitor_pricing(product_id)
             if "error" in competitor_analysis:
-                competitor_avg = current_price
+                competitor_avg = float(current_price)
             else:
-                competitor_avg = competitor_analysis["competitor_avg"]
-            
+                competitor_avg = float(competitor_analysis["competitor_avg"])
             # Calculate optimal price using multiple factors
             # Factor 1: Cost-based pricing (minimum 20% margin)
-            min_price = cost_price * 1.2
-            
+            min_price = float(cost_price) * 1.2
             # Factor 2: Demand-based adjustment
-            demand_adjustment = 1.0 + (demand_score - 0.5) * 0.2  # ±10% based on demand
-            
+            demand_adjustment = float(1.0 + (demand_score - 0.5) * 0.2)  # ±10% based on demand
             # Factor 3: Competition-based adjustment
-            competition_ratio = competitor_avg / current_price if current_price > 0 else 1.0
-            competition_adjustment = min(max(competition_ratio, 0.8), 1.2)  # Limit to ±20%
-            
+            competition_ratio = float(competitor_avg) / float(current_price) if current_price > 0 else 1.0
+            competition_adjustment = float(min(max(competition_ratio, 0.8), 1.2))  # Limit to ±20%
             # Factor 4: Elasticity-based adjustment
             if elasticity < -1.5:  # Very elastic (price sensitive)
                 elasticity_adjustment = 0.95  # Slightly lower price
@@ -184,31 +178,27 @@ def calculate_optimal_price(product_id: str) -> Dict[str, Any]:
                 elasticity_adjustment = 1.05  # Slightly higher price
             else:
                 elasticity_adjustment = 1.0
-            
+            elasticity_adjustment = float(elasticity_adjustment)
             # Calculate optimal price
-            optimal_price = min_price * demand_adjustment * competition_adjustment * elasticity_adjustment
-            
+            optimal_price = float(min_price) * float(demand_adjustment) * float(competition_adjustment) * float(elasticity_adjustment)
             # Ensure reasonable bounds
             optimal_price = max(optimal_price, min_price)
             optimal_price = min(optimal_price, competitor_avg * 1.5)  # Don't exceed 150% of competitor avg
-            
             price_change = ((optimal_price - current_price) / current_price) * 100 if current_price > 0 else 0
-            
             return {
-                "current_price": round(current_price, 2),
-                "optimal_price": round(optimal_price, 2),
-                "price_change_percent": round(price_change, 1),
-                "min_price": round(min_price, 2),
+                "current_price": round(float(current_price), 2),
+                "optimal_price": round(float(optimal_price), 2),
+                "price_change_percent": round(float(price_change), 1),
+                "min_price": round(float(min_price), 2),
                 "factors": {
-                    "cost_based": round(min_price, 2),
-                    "demand_adjustment": round(demand_adjustment, 3),
-                    "competition_adjustment": round(competition_adjustment, 3),
-                    "elasticity_adjustment": round(elasticity_adjustment, 3)
+                    "cost_based": round(float(min_price), 2),
+                    "demand_adjustment": round(float(demand_adjustment), 3),
+                    "competition_adjustment": round(float(competition_adjustment), 3),
+                    "elasticity_adjustment": round(float(elasticity_adjustment), 3)
                 },
                 "recommendation": "increase" if price_change > 2 else "decrease" if price_change < -2 else "maintain",
                 "confidence": 0.8
             }
-            
     except Exception as e:
         logger.error(f"Error calculating optimal price for product {product_id}: {e}")
         return {"error": str(e)}

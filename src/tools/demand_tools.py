@@ -3,9 +3,9 @@ import logging
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
-from models.products import Product, DemandScore, InventoryLevel
-from models.sales_data import SalesData
-from config.database import get_db
+from src.models.products import Product, DemandScore, InventoryLevel
+from src.models.sales_data import SalesData
+from src.config.database import get_db
 
 logger = logging.getLogger(__name__)
 

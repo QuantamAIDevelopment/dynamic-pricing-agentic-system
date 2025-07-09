@@ -1,4 +1,4 @@
-from .web_scraping_agent import run_web_scraping_agent
+from src.agents.web_scraping_agent import run_web_scraping_agent
 from .competitor_monitoring_agent import run_competitor_monitoring_agent, CompetitorMonitoringAgent, competitor_monitoring_agent
 from .supervisor_agent import run_supervisor_agent, SupervisorAgent, supervisor_agent
 from .inventory_tracking_agent import run_inventory_tracking_agent

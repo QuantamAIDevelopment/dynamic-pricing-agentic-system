@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, DateTime, Text, Numeric, ForeignKey, JSON
-from models.base import BaseModel
+from src.models.base import BaseModel
 
 class AgentDecision(BaseModel):
     __tablename__ = "agent_decisions"

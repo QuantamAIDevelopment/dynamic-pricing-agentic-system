@@ -1,14 +1,14 @@
 from langchain.agents import initialize_agent, AgentType
 from langchain.tools import Tool
-from tools.search_tool import search_product_listing_page
-from tools.scrape_tool import scrape_products, ScrapeProductInput
-from config.database import get_db, CompetitorPrice, SessionLocal, save_agent_decision
-from models.agent_decisions import AgentDecision
+from src.tools.search_tool import search_product_listing_page
+from src.tools.scrape_tool import scrape_products, ScrapeProductInput
+from src.config.database import get_db, CompetitorPrice, SessionLocal, save_agent_decision
+from src.models.agent_decisions import AgentDecision
 
 import logging
 from datetime import datetime
-from config.llm_config import llm
-from models.products import Product  # Import here to avoid circular import
+from src.config.llm_config import llm
+from src.models.products import Product  # Import here to avoid circular import
 import urllib.parse
 import redis
 import json
@@ -106,7 +106,7 @@ def run_web_scraping_agent(input: dict) -> dict:
             "product_name": product_name
         }
         logger.info(f"[WebScrapingAgent] Invoking scrape_products_core with input: {scrape_input}")
-        from tools.scrape_tool import scrape_products_core
+        from src.tools.scrape_tool import scrape_products_core
         scraped_products = scrape_products_core(
             scrape_input["url"],
             scrape_input["competitor"],

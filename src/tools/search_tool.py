@@ -1,8 +1,8 @@
 from langchain.tools import tool
 import requests
 from bs4 import BeautifulSoup
-from config.database import get_db, CompetitorPrice
-from models.products import Product
+from src.config.database import get_db, CompetitorPrice
+from src.models.products import Product
 import logging
 import re
 from datetime import datetime
