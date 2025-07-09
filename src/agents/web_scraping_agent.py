@@ -46,7 +46,9 @@ redis_client = redis.Redis(
 )
 
 def run_web_scraping_agent(input: dict) -> dict:
-
+    """
+    Main workflow for the WebScrapingAgent.
+    """
     domain = input.get("domain", "").strip()
     category = input.get("category", "").strip()
     product_name = input.get("product_name", None)
@@ -159,8 +161,59 @@ def run_web_scraping_agent(input: dict) -> dict:
         logger.error(f"[WebScrapingAgent] Error in web scraping workflow: {e}")
         return {"status": "error", "data": None, "message": f"Error in workflow: {e}"}
 
+def listen_for_scrape_requests():
+    """
+    Listen for scrape requests on the 'scrape_requests' Redis channel and process them.
+    """
+    logger.info("[WebScrapingAgent] Listening for scrape requests on 'scrape_requests' channel...")
+    pubsub = redis_client.pubsub()
+    pubsub.subscribe('scrape_requests')
+    try:
+        for message in pubsub.listen():
+            if message['type'] == 'message':
+                try:
+                    logger.info(f"[WebScrapingAgent] Received scrape request: {message['data']}")
+                    request_data = json.loads(message['data'])
+                    result = run_web_scraping_agent(request_data)
+                    # Standardized message format
+                    event = {
+                        "type": "scraped_data",
+                        "agent": "WebScrapingAgent",
+                        "timestamp": datetime.now().isoformat(),
+                        "payload": result.get('data')
+                    }
+                    redis_client.publish('scraped_data', json.dumps(event, default=str))
+                except Exception as e:
+                    logger.error(f"[WebScrapingAgent] Error processing scrape request: {e}")
+    except KeyboardInterrupt:
+        logger.info("[WebScrapingAgent] Stopping scrape request listener...")
+    finally:
+        pubsub.unsubscribe()
+        pubsub.close()
+
+def listen_for_feedback():
+    """
+    Listen for feedback messages on the 'feedback' Redis channel and log them.
+    """
+    logger.info("[WebScrapingAgent] Listening for feedback on 'feedback' channel...")
+    pubsub = redis_client.pubsub()
+    pubsub.subscribe('feedback')
+    try:
+        for message in pubsub.listen():
+            if message['type'] == 'message':
+                logger.info(f"[WebScrapingAgent] Received feedback: {message['data']}")
+    except KeyboardInterrupt:
+        logger.info("[WebScrapingAgent] Stopping feedback listener...")
+    finally:
+        pubsub.unsubscribe()
+        pubsub.close()
+
 if __name__ == "__main__":
-    # Example usage with dynamic category
-    input_data = {"domain": "amazon.com", "category": "books"}
-    result = run_web_scraping_agent(input_data)
-    print(result)
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == 'listen':
+        listen_for_scrape_requests()
+    else:
+        # Example usage with dynamic category
+        input_data = {"domain": "amazon.com", "category": "books"}
+        result = run_web_scraping_agent(input_data)
+        print(result)

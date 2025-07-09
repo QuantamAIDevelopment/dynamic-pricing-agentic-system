@@ -1,160 +1,287 @@
-# Dynamic Pricing Agentic System
+# Dynamic Pricing Agentic AI System
 
-## Overview
+A comprehensive, multi-agent AI system for dynamic pricing optimization in e-commerce, featuring advanced tools, memory, reflection, and reasoning capabilities.
 
-The **Dynamic Pricing Agentic System** by **QAID Software Private Limited** is an enterprise-grade, multi-agent AI platform designed to automate and optimize product pricing for e-commerce businesses. Leveraging real-time competitor data, demand analytics, inventory levels, and advanced AI/LLM reasoning, the system enables dynamic, data-driven pricing decisions with minimal human intervention.
+## 🚀 Features
 
-- **Multi-agent architecture**: Supervisor, Web Scraping, Competitor Monitoring, Pricing Decision, Demand Analysis, and Inventory Tracking agents.
-- **Real-time data integration**: Scrapes competitor sites, analyzes demand, and monitors inventory.
-- **Enterprise-ready**: Scalable, modular, and production-hardened with robust logging, monitoring, and API interfaces.
+### **Agentic AI Components**
+- **Tools**: Specialized tools for pricing analysis, demand forecasting, and inventory management
+- **Memory**: Persistent context retention across pricing cycles
+- **Reflection**: Agents reflect on their decisions and learn from feedback
+- **Reasoning**: Step-by-step reasoning chains for transparent decision-making
 
----
+### **Multi-Agent Architecture**
+- **Supervisor Agent**: Orchestrates the entire pricing workflow
+- **Pricing Decision Agent**: Makes optimal pricing decisions using comprehensive analysis
+- **Demand Analysis Agent**: Analyzes demand patterns and forecasts future demand
+- **Inventory Tracking Agent**: Monitors inventory levels and optimizes stock management
+- **Competitor Monitoring Agent**: Tracks competitor prices and market positioning
+- **Web Scraping Agent**: Gathers real-time data from e-commerce platforms
 
-## Key Features
+### **Advanced Analytics**
+- Price elasticity calculations
+- Sales velocity analysis
+- Demand forecasting
+- Inventory optimization
+- Competitor price analysis
+- Market sentiment assessment
 
-- **Autonomous Price Optimization**: Agents collaborate to set optimal prices based on market, demand, and inventory signals.
-- **Competitor Intelligence**: Web Scraping Agent retrieves real-time competitor prices, descriptions, and availability.
-- **Demand & Inventory Analytics**: Demand Analysis and Inventory Tracking Agents provide actionable insights for pricing.
-- **Agentic Orchestration**: Supervisor Agent coordinates workflows using CrewAI and LangChain.
-- **Decision Logging**: All agent decisions are logged for auditability and continuous improvement.
-- **API-First**: FastAPI-based endpoints for integration with external systems.
-- **Scalable & Secure**: Built for high throughput, reliability, and secure operations.
+## 🏗️ Architecture
 
----
-
-## Architecture
-
-![Architecture Diagram](docs/architecture-diagram.png)
-
-- **Agents**: Each agent is responsible for a specific domain (scraping, monitoring, pricing, etc.).
-- **Communication**: Redis Pub/Sub for real-time messaging; PostgreSQL for persistent context.
-- **LLM Integration**: Supports OpenAI GPT-4, Claude, Llama 3, and more via LangChain and CrewAI.
-- **Vector Store**: Pinecone for embeddings and similarity search.
-- **Monitoring**: Custom telemetry and decision logging for enterprise observability.
-
----
-
-## Use Case Example
-
-> **Automated Dynamic Pricing for E-Commerce**
->
-> The system continuously scrapes competitor sites, analyzes demand and inventory, and updates product prices in real time. This maximizes revenue, maintains competitiveness, and reduces manual workload by 90%.
-
----
-
-## API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | API root and metadata |
-| `/health` | GET | Health check for all services |
-| `/agents/supervisor` | POST | Run a pricing cycle for a product (input: `product_name`) |
-| `/agents/supervisor/history/{product_id}` | GET | Retrieve pricing history for a product |
-| `/agents/competitor-monitoring/similar/{product_name}` | GET | Find similar products using vector search |
-
-**Example: Run Supervisor Agent**
-```bash
-curl -X POST http://localhost:8000/agents/supervisor \
-  -H "Content-Type: application/json" \
-  -d '{"product_name": "IQOO Z10 5G"}'
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Supervisor    │    │   Pricing       │    │   Demand        │
+│     Agent       │    │   Decision      │    │     Agent       │
+│                 │    │     Agent       │    │     Agent       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Inventory     │    │   Competitor    │    │   Web Scraping  │
+│   Tracking      │    │   Monitoring    │    │     Agent       │
+│     Agent       │    │     Agent       │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   Tools Layer   │
+                    │                 │
+                    │ • Pricing Tools │
+                    │ • Demand Tools  │
+                    │ • Inventory     │
+                    │   Tools         │
+                    │ • Scraping      │
+                    │   Tools         │
+                    └─────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   Database      │
+                    │                 │
+                    │ • Products      │
+                    │ • Sales Data    │
+                    │ • Price History │
+                    │ • Agent         │
+                    │   Decisions     │
+                    └─────────────────┘
 ```
 
----
+## 🛠️ Installation
 
-## Setup & Installation
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd dynamic-pricing-agentic-system
+   ```
 
-### 1. Clone the Repository
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```bash
-git clone <your-repo-url>
-cd dynamic-pricing-agentic-system
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+4. **Initialize the database**
+   ```bash
+   # Run the schema and dummy data scripts
+   psql -d your_database -f scripts/schema.sql
+   psql -d your_database -f scripts/dummy_products.sql
+   psql -d your_database -f scripts/dummy_competitor_prices.sql
+   psql -d your_database -f scripts/dummy_sales_data.sql
+   psql -d your_database -f scripts/dummy_agent_decisions.sql
+   ```
+
+5. **Start the API server**
+   ```bash
+   python src/main.py
+   ```
+
+## 📊 API Endpoints
+
+### **Supervisor Agent**
+- `POST /agents/supervisor` - Run complete pricing cycle
+- `GET /agents/supervisor/history/{product_id}` - Get pricing history
+
+### **Pricing Decision Agent**
+- `POST /agents/pricing/analyze` - Run comprehensive pricing analysis
+- `GET /agents/pricing/recommendations/{product_id}` - Get pricing recommendations
+- `GET /agents/pricing/optimal-price/{product_id}` - Calculate optimal price
+
+### **Demand Analysis Agent**
+- `POST /agents/demand/analyze` - Run demand analysis
+- `GET /agents/demand/score/{product_id}` - Get demand score
+
+### **Inventory Tracking Agent**
+- `POST /agents/inventory/analyze` - Run inventory analysis
+- `GET /agents/inventory/health/{product_id}` - Get inventory health
+- `GET /agents/inventory/optimize/{product_id}` - Get inventory optimization
+
+### **Competitor Monitoring Agent**
+- `POST /agents/competitor/monitor` - Monitor competitor prices
+- `GET /agents/competitor-monitoring/similar/{product_name}` - Find similar products
+
+### **Comprehensive Analysis**
+- `POST /agents/comprehensive-analysis` - Run all analyses for a product
+
+## 🔧 Tools
+
+### **Pricing Tools**
+- `calculate_price_elasticity()` - Calculate price sensitivity
+- `analyze_competitor_pricing()` - Analyze competitor price positioning
+- `calculate_optimal_price()` - Determine optimal price point
+- `get_pricing_recommendations()` - Get comprehensive pricing advice
+
+### **Demand Tools**
+- `calculate_sales_velocity()` - Calculate units sold per day
+- `calculate_demand_score()` - Compute demand score from multiple factors
+- `forecast_demand()` - Predict future demand
+- `analyze_demand_signals()` - Analyze demand patterns
+
+### **Inventory Tools**
+- `calculate_reorder_point()` - Calculate optimal reorder point
+- `analyze_inventory_health()` - Assess inventory status
+- `forecast_inventory_needs()` - Predict inventory requirements
+- `optimize_inventory_levels()` - Get inventory optimization recommendations
+
+## 🧠 Agentic AI Features
+
+### **Memory & Context**
+- Agents maintain conversation history and context
+- Previous decisions influence future recommendations
+- Learning from historical pricing cycles
+
+### **Reflection & Reasoning**
+- Agents reflect on their decisions and outcomes
+- Step-by-step reasoning chains for transparency
+- Confidence scores for all recommendations
+
+### **Feedback Integration**
+- Agents listen for feedback and adjust behavior
+- Continuous improvement through feedback loops
+- Adaptive decision-making based on outcomes
+
+## 📈 Usage Examples
+
+### **Run Comprehensive Analysis**
+```python
+import requests
+
+# Run complete analysis for a product
+response = requests.post("http://localhost:8000/agents/comprehensive-analysis", 
+                        json={"product_id": "P1001"})
+result = response.json()
+print(f"Overall status: {result['data']['overall_assessment']['status']}")
 ```
 
-### 2. Install Dependencies
-
-```bash
-pip install -r requirements.txt
+### **Get Pricing Recommendations**
+```python
+# Get pricing recommendations
+response = requests.get("http://localhost:8000/agents/pricing/recommendations/P1001")
+recommendations = response.json()
+print(f"Recommendation: {recommendations['recommendations']['overall_recommendation']}")
 ```
 
-### 3. Configure Environment
-
-- Copy `config.env.example` to `.env` and fill in your environment variables (PostgreSQL, Redis, Pinecone, API keys, etc.).
-- Ensure PostgreSQL and Redis are running and accessible.
-
-### 4. Initialize Database
-
-```bash
-psql <your-db-connection-string> -f scripts/schema.sql
+### **Analyze Demand**
+```python
+# Analyze demand patterns
+response = requests.post("http://localhost:8000/agents/demand/analyze",
+                        json={"product_id": "P1001", "days": 30})
+demand_data = response.json()
+print(f"Demand level: {demand_data['data']['overall_demand_assessment']['demand_level']}")
 ```
 
-### 5. Run the API Server
+## 🔄 Pricing Workflow
 
+1. **Data Collection**: Web scraping agents gather competitor data
+2. **Demand Analysis**: Analyze sales velocity and demand patterns
+3. **Inventory Assessment**: Check stock levels and reorder points
+4. **Competitor Analysis**: Compare pricing with market competitors
+5. **Pricing Decision**: Calculate optimal price using all factors
+6. **Implementation**: Update prices and monitor results
+7. **Reflection**: Agents reflect on outcomes and learn
+
+## 📊 Data Models
+
+### **Enhanced Product Model**
+- Sales velocity tracking
+- Price elasticity calculations
+- Market positioning
+- Demand scores
+
+### **Agent Decisions**
+- Reasoning chains
+- Reflection on decisions
+- Confidence scores
+- Input/output data tracking
+
+### **Comprehensive Analytics**
+- Price history with reasons
+- Sales data with demand signals
+- Inventory levels with optimization
+- Competitor price tracking
+
+## 🚀 E-commerce Integration
+
+The system is designed for easy integration with e-commerce platforms:
+
+- **RESTful API**: Standard JSON endpoints
+- **Webhook Support**: Real-time price updates
+- **Batch Processing**: Bulk pricing operations
+- **Monitoring**: Real-time system health checks
+
+## 🔧 Configuration
+
+### **Environment Variables**
 ```bash
-uvicorn src.api:app --host 0.0.0.0 --port 8000
+# Database
+DATABASE_URL=postgresql://user:pass@localhost/dbname
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# LLM Configuration
+OPENAI_API_KEY=your_openai_key
+GROQ_API_KEY=your_groq_key
+
+# Pricing Cycle
+PRICING_CYCLE_INTERVAL_MINUTES=30
+
+# Vector Database
+PINECONE_API_KEY=your_pinecone_key
 ```
 
----
+## 📝 Monitoring & Logging
 
-## Database Schema
+- **Structured Logging**: All agent actions are logged
+- **Performance Metrics**: Response times and success rates
+- **Error Tracking**: Comprehensive error handling and reporting
+- **Health Checks**: System status monitoring
 
-- See [`scripts/schema.sql`](scripts/schema.sql) for full schema.
-- Tables: `products`, `competitor_prices`, `agent_decisions`, `price_history`, `sales_data`.
+## 🤝 Contributing
 
----
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
-## Agentic Workflow
+## 📄 License
 
-1. **Supervisor Agent** orchestrates the pricing cycle.
-2. **Web Scraping Agent** scrapes competitor data and publishes to Redis.
-3. **Competitor Monitoring Agent** processes and embeds data, stores in Pinecone and PostgreSQL.
-4. **Demand & Inventory Agents** analyze sales and stock data.
-5. **Pricing Decision Agent** computes optimal price and logs the decision.
-6. **All decisions and actions are logged for traceability and learning.**
+This project is licensed under the MIT License - see the LICENSE file for details.
 
----
+## 🆘 Support
 
-## Enterprise Features
-
-- **Multi-Tenancy**: Supports isolated business units and pricing rules.
-- **Extensible**: Add new agents, data sources, or LLMs with minimal changes.
-- **Observability**: All agent actions and decisions are logged for compliance and analytics.
-- **Security**: API key management, secure DB connections, and ethical scraping practices.
-
----
-
-## Technology Stack
-
-- **Python 3.10+**
-- **FastAPI** (API)
-- **LangChain, CrewAI** (Agent orchestration)
-- **PostgreSQL** (Database)
-- **Redis** (Pub/Sub messaging)
-- **Pinecone** (Vector store)
-- **Selenium, BeautifulSoup, Scrapy** (Web scraping)
-- **Sentence Transformers** (Embeddings)
-- **OpenAI, Claude, Llama 3** (LLMs)
+For support and questions:
+- Create an issue in the repository
+- Check the documentation
+- Review the API examples
 
 ---
 
-## Contributing
-
-Enterprise users and contributors are welcome! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
-## License
-
-This project is licensed under the MIT License.
-
----
-
-## Contact
-
-For enterprise support, integration, or consulting, please contact:
-
-**QAID Software Private Limited**  
-**Email:** admin@qaid.co.in
-
----
-
-*For detailed architecture, use cases, and agent implementation, see the `docs/` directory.*
+**Built with ❤️ for intelligent e-commerce pricing**

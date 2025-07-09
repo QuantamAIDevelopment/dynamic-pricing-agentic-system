@@ -2,10 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from config.settings import settings
-from models.competitor_prices import CompetitorPrice
+from models import *
 from models.base import Base
-from models.products import Product
-from models.agent_decisions import AgentDecision
 import logging
 
 # Configure logging
@@ -65,4 +63,54 @@ def save_agent_decision(db, decision_dict):
     except Exception as e:
         db.rollback()
         logger.error(f"Error saving agent decision: {e}")
+        raise
+
+def save_price_history(db, price_history_dict):
+    try:
+        price_history = PriceHistory(**price_history_dict)
+        db.add(price_history)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error saving price history: {e}")
+        raise
+
+def save_product(db, product_dict):
+    try:
+        product = Product(**product_dict)
+        db.add(product)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error saving product: {e}")
+        raise
+
+def save_demand_score(db, demand_score_dict):
+    try:
+        demand_score = DemandScore(**demand_score_dict)
+        db.add(demand_score)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error saving demand score: {e}")
+        raise
+
+def save_inventory_level(db, inventory_level_dict):
+    try:
+        inventory_level = InventoryLevel(**inventory_level_dict)
+        db.add(inventory_level)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error saving inventory level: {e}")
+        raise
+
+def save_feedback_log(db, feedback_log_dict):
+    try:
+        feedback_log = FeedbackLog(**feedback_log_dict)
+        db.add(feedback_log)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error saving feedback log: {e}")
         raise

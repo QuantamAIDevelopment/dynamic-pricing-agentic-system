@@ -1,7 +1,7 @@
 from sqlalchemy.exc import SQLAlchemyError
 from config.database import SessionLocal, engine, Base
 # Ensure all models are imported so their tables are created
-from models import products, competitor_prices, agent_decisions
+from models import *
 import time
 import logging
 

@@ -137,6 +137,18 @@ class CompetitorMonitoringAgent:
                     save_agent_decision(db, decision_dict)
             except Exception as e:
                 logger.error(f"[CompetitorMonitoringAgent] Error logging agent decision: {e}")
+            # Publish to Redis for Pricing Decision Agent
+            try:
+                event = {
+                    "type": "competitor_data",
+                    "agent": "CompetitorMonitoringAgent",
+                    "timestamp": datetime.now().isoformat(),
+                    "payload": product_data
+                }
+                self.redis_client.publish('competitor_data', json.dumps(event, default=str))
+                logger.info(f"[CompetitorMonitoringAgent] Published competitor data to Redis for product: {product_data.get('product_name', 'Unknown')}")
+            except Exception as e:
+                logger.error(f"[CompetitorMonitoringAgent] Error publishing to Redis: {e}")
         except Exception as e:
             logger.error(f"[CompetitorMonitoringAgent] Error processing competitor data: {e}")
     
@@ -248,6 +260,23 @@ class CompetitorMonitoringAgent:
         finally:
             self.pubsub.unsubscribe()
             self.pubsub.close()
+    
+    def listen_for_feedback(self):
+        """
+        Listen for feedback messages on the 'feedback' Redis channel and log them.
+        """
+        logger.info("[CompetitorMonitoringAgent] Listening for feedback on 'feedback' channel...")
+        pubsub = self.redis_client.pubsub()
+        pubsub.subscribe('feedback')
+        try:
+            for message in pubsub.listen():
+                if message['type'] == 'message':
+                    logger.info(f"[CompetitorMonitoringAgent] Received feedback: {message['data']}")
+        except KeyboardInterrupt:
+            logger.info("[CompetitorMonitoringAgent] Stopping feedback listener...")
+        finally:
+            pubsub.unsubscribe()
+            pubsub.close()
     
     def run_monitoring_cycle(self):
         """Run a single monitoring cycle"""
