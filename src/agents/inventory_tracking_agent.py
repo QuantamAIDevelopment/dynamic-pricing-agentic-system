@@ -209,6 +209,9 @@ def run_inventory_tracking_agent(input: dict) -> dict:
                     logger.info(f"[InventoryTrackingAgent] Updated stock level for product {product_id}: {current_stock}")
             
             db.commit()
+
+            # Publish inventory update to Redis
+            publish_inventory_update(result)
  
             logger.info(f"[InventoryTrackingAgent] Completed inventory analysis for product {product_id}")
  

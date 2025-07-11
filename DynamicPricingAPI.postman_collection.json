@@ -1,0 +1,235 @@
+{
+  "info": {
+    "name": "Dynamic Pricing Agentic System",
+    "_postman_id": "d1b2c3e4-f5a6-7890-b1c2-d3e4f5a67890",
+    "description": "All endpoints for the Dynamic Pricing Agentic System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Add Product",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"B0DTHVHZC5\",\n  \"name\": \"Vivo V50 5G\",\n  \"category\": \"Smartphones\",\n  \"base_price\": 1000,\n  \"current_price\": 1000,\n  \"cost_price\": 800,\n  \"stock_level\": 10,\n  \"demand_score\": 0,\n  \"sales_velocity\": 0,\n  \"price_elasticity\": 0,\n  \"market_position\": \"mid-range\",\n  \"is_active\": true\n}"
+        },
+        "url": { "raw": "http://127.0.0.1:8000/products", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["products"] }
+      }
+    },
+    {
+      "name": "Get Product by ID",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "accept", "value": "application/json" }],
+        "url": { "raw": "http://127.0.0.1:8000/products/B0DTHVHZC5", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["products", "B0DTHVHZC5"] }
+      }
+    },
+    {
+      "name": "List All Products",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "accept", "value": "application/json" }],
+        "url": { "raw": "http://127.0.0.1:8000/products", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["products"] }
+      }
+    },
+    {
+      "name": "Run Supervisor Agent",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_name\": \"Vivo V50 5G\"\n}"
+        },
+        "url": { "raw": "http://127.0.0.1:8000/agents/supervisor", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "supervisor"] }
+      }
+    },
+    {
+      "name": "Get Supervisor Pricing History",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "accept", "value": "application/json" }],
+        "url": {
+          "raw": "http://127.0.0.1:8000/agents/supervisor/history/B0DTHVHZC5?days=30",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "8000",
+          "path": ["agents", "supervisor", "history", "B0DTHVHZC5"],
+          "query": [{ "key": "days", "value": "30" }]
+        }
+      }
+    },
+    {
+      "name": "Analyze Pricing",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_id\": \"B0DTHVHZC5\",\n  \"include_forecast\": true\n}"
+        },
+        "url": { "raw": "http://127.0.0.1:8000/agents/pricing/analyze", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "pricing", "analyze"] }
+      }
+    },
+    {
+      "name": "Get Pricing Recommendations",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "accept", "value": "application/json" }],
+        "url": { "raw": "http://127.0.0.1:8000/agents/pricing/recommendations/B0DTHVHZC5", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "pricing", "recommendations", "B0DTHVHZC5"] }
+      }
+    },
+    {
+      "name": "Get Optimal Price",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "accept", "value": "application/json" }],
+        "url": { "raw": "http://127.0.0.1:8000/agents/pricing/optimal-price/B0DTHVHZC5", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "pricing", "optimal-price", "B0DTHVHZC5"] }
+      }
+    },
+    {
+      "name": "Analyze Demand",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_id\": \"B0DTHVHZC5\",\n  \"days\": 30\n}"
+        },
+        "url": { "raw": "http://127.0.0.1:8000/agents/demand/analyze", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "demand", "analyze"] }
+      }
+    },
+    {
+      "name": "Get Demand Score",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "accept", "value": "application/json" }],
+        "url": { "raw": "http://127.0.0.1:8000/agents/demand/score/B0DTHVHZC5", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "demand", "score", "B0DTHVHZC5"] }
+      }
+    },
+    {
+      "name": "Analyze Inventory",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_id\": \"B0DTHVHZC5\",\n  \"days_ahead\": 30\n}"
+        },
+        "url": { "raw": "http://127.0.0.1:8000/agents/inventory/analyze", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "inventory", "analyze"] }
+      }
+    },
+    {
+      "name": "Get Inventory Health",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "accept", "value": "application/json" }],
+        "url": { "raw": "http://127.0.0.1:8000/agents/inventory/health/B0DTHVHZC5", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "inventory", "health", "B0DTHVHZC5"] }
+      }
+    },
+    {
+      "name": "Get Inventory Optimization",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "accept", "value": "application/json" }],
+        "url": { "raw": "http://127.0.0.1:8000/agents/inventory/optimize/B0DTHVHZC5", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "inventory", "optimize", "B0DTHVHZC5"] }
+      }
+    },
+    {
+      "name": "Run Inventory Tracking",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_id\": \"B0DTHVHZC5\",\n  \"product_name\": \"Vivo V50 5G\",\n  \"stock_level\": 10\n}"
+        },
+        "url": { "raw": "http://127.0.0.1:8000/agents/inventory-tracking", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "inventory-tracking"] }
+      }
+    },
+    {
+      "name": "Monitor Competitors",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_id\": \"B0DTHVHZC5\"\n}"
+        },
+        "url": { "raw": "http://127.0.0.1:8000/agents/competitor/monitor", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "competitor", "monitor"] }
+      }
+    },
+    {
+      "name": "Get Similar Products",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "accept", "value": "application/json" }],
+        "url": {
+          "raw": "http://127.0.0.1:8000/agents/competitor-monitoring/similar/Vivo%20V50%205G?category=Smartphones&limit=5",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "8000",
+          "path": ["agents", "competitor-monitoring", "similar", "Vivo V50 5G"],
+          "query": [
+            { "key": "category", "value": "Smartphones" },
+            { "key": "limit", "value": "5" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Run Comprehensive Analysis",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_id\": \"B0DTHVHZC5\"\n}"
+        },
+        "url": { "raw": "http://127.0.0.1:8000/agents/comprehensive-analysis", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["agents", "comprehensive-analysis"] }
+      }
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "accept", "value": "application/json" }],
+        "url": { "raw": "http://127.0.0.1:8000/health", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": ["health"] }
+      }
+    },
+    {
+      "name": "Root Endpoint",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "accept", "value": "application/json" }],
+        "url": { "raw": "http://127.0.0.1:8000/", "protocol": "http", "host": ["127.0.0.1"], "port": "8000", "path": [""] }
+      }
+    }
+  ]
+} 

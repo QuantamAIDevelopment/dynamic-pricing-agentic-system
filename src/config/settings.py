@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     PINECONE_ENVIRONMENT: str = ""
     USE_GROQ: bool = False
 
+    # Add Redis config fields
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+
     @validator("SQLALCHEMY_DATABASE_URI", pre=True)
     def assemble_db_connection(cls, v: Optional[str], values: dict[str, str]) -> str:
         if isinstance(v, str) and v:

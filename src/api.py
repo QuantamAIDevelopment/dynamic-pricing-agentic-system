@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Dict, Any, Optional
@@ -14,6 +14,7 @@ from src.tools.pricing_tools import get_pricing_recommendations, calculate_optim
 from src.tools.demand_tools import calculate_demand_score as calculate_demand_score_tool
 from src.tools.inventory_tools import analyze_inventory_health, optimize_inventory_levels
 from src.models.products import Product  # adjust import as needed
+from src.config.database import SessionLocal, save_product
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -125,6 +126,13 @@ class SalesDataResponse(BaseModel):
     discount_applied: Optional[float]
     transaction_id: Optional[str]
 
+def get_product_or_404(product_id: str):
+    with SessionLocal() as db:
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
+        return product
+
 # --- Update endpoints to use these models for input/output ---
 # Example for /products (GET, POST, etc.)
 @app.on_event("startup")
@@ -162,6 +170,7 @@ async def health_check():
 # Supervisor Agent Endpoints
 @app.post("/agents/supervisor")
 async def run_supervisor(request: ProductNameRequest):
+    # Supervisor agent uses product_name, not product_id, so we skip existence check here
     logger.info(f"[API] /agents/supervisor called with product_name: {request.product_name}")
     try:
         result = run_supervisor_agent({"product_name": request.product_name})
@@ -182,7 +191,7 @@ async def run_supervisor(request: ProductNameRequest):
 async def get_pricing_history(product_id: str, days: int = 30):
     logger.info(f"[API] /agents/supervisor/history/{product_id} called with days={days}")
     try:
-        from agents.supervisor_agent import supervisor_agent
+        from src.agents.supervisor_agent import supervisor_agent
         history = supervisor_agent.get_pricing_history(product_id, days)
         return {
             "status": "success",
@@ -196,6 +205,7 @@ async def get_pricing_history(product_id: str, days: int = 30):
 # Pricing Decision Agent Endpoints
 @app.post("/agents/pricing/analyze")
 async def analyze_pricing(request: PricingAnalysisRequest):
+    get_product_or_404(request.product_id)
     logger.info(f"[API] /agents/pricing/analyze called with product_id: {request.product_id}")
     try:
         result = run_pricing_decision_agent({"product_id": request.product_id})
@@ -214,28 +224,40 @@ async def analyze_pricing(request: PricingAnalysisRequest):
 
 @app.get("/agents/pricing/recommendations/{product_id}")
 async def get_pricing_recommendations_endpoint(product_id: str):
+    get_product_or_404(product_id)
     logger.info(f"[API] /agents/pricing/recommendations/{product_id} called")
     try:
         recommendations = get_pricing_recommendations(product_id)
+        if isinstance(recommendations, dict) and recommendations.get("overall_recommendation") == "maintain_current_price" and any(
+            v.get("error") == "Product not found" for k, v in recommendations.items() if isinstance(v, dict)
+        ):
+            raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
         return {
             "status": "success",
             "product_id": product_id,
             "recommendations": recommendations
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[API] Error getting pricing recommendations: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get pricing recommendations: {str(e)}")
 
 @app.get("/agents/pricing/optimal-price/{product_id}")
 async def get_optimal_price(product_id: str):
+    get_product_or_404(product_id)
     logger.info(f"[API] /agents/pricing/optimal-price/{product_id} called")
     try:
         optimal_price = calculate_optimal_price(product_id)
+        if isinstance(optimal_price, dict) and optimal_price.get("error") == "Product not found":
+            raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
         return {
             "status": "success",
             "product_id": product_id,
             "optimal_price": optimal_price
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[API] Error calculating optimal price: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to calculate optimal price: {str(e)}")
@@ -243,6 +265,7 @@ async def get_optimal_price(product_id: str):
 # Demand Analysis Agent Endpoints
 @app.post("/agents/demand/analyze")
 async def analyze_demand(request: DemandAnalysisRequest):
+    get_product_or_404(request.product_id)
     logger.info(f"[API] /agents/demand/analyze called with product_id: {request.product_id}")
     try:
         result = analyze_demand_score(None, request.product_id)
@@ -255,20 +278,27 @@ async def analyze_demand(request: DemandAnalysisRequest):
             }
         else:
             raise HTTPException(status_code=400, detail=result["error"])
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[API] Error in demand analysis agent: {e}")
         raise HTTPException(status_code=500, detail=f"Demand analysis failed: {str(e)}")
 
 @app.get("/agents/demand/score/{product_id}")
 async def get_demand_score(product_id: str):
+    get_product_or_404(product_id)
     logger.info(f"[API] /agents/demand/score/{product_id} called")
     try:
         demand_score = calculate_demand_score_tool(product_id)
+        if isinstance(demand_score, dict) and demand_score.get("error") == "Product not found":
+            raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
         return {
             "status": "success",
             "product_id": product_id,
             "demand_score": demand_score
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[API] Error calculating demand score: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to calculate demand score: {str(e)}")
@@ -276,6 +306,7 @@ async def get_demand_score(product_id: str):
 # Inventory Tracking Agent Endpoints
 @app.post("/agents/inventory/analyze")
 async def analyze_inventory(request: InventoryAnalysisRequest):
+    get_product_or_404(request.product_id)
     logger.info(f"[API] /agents/inventory/analyze called with product_id: {request.product_id}")
     try:
         result = run_inventory_tracking_agent({"product_id": request.product_id})
@@ -288,40 +319,54 @@ async def analyze_inventory(request: InventoryAnalysisRequest):
             }
         else:
             raise HTTPException(status_code=400, detail=result["message"])
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[API] Error in inventory tracking agent: {e}")
         raise HTTPException(status_code=500, detail=f"Inventory analysis failed: {str(e)}")
 
 @app.get("/agents/inventory/health/{product_id}")
 async def get_inventory_health(product_id: str):
+    get_product_or_404(product_id)
     logger.info(f"[API] /agents/inventory/health/{product_id} called")
     try:
         health = analyze_inventory_health(product_id)
+        if isinstance(health, dict) and health.get("error") == "No inventory data found for product":
+            raise HTTPException(status_code=404, detail=f"No inventory data found for product {product_id}")
         return {
             "status": "success",
             "product_id": product_id,
             "health": health
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[API] Error analyzing inventory health: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to analyze inventory health: {str(e)}")
 
 @app.get("/agents/inventory/optimize/{product_id}")
 async def get_inventory_optimization(product_id: str):
+    get_product_or_404(product_id)
     logger.info(f"[API] /agents/inventory/optimize/{product_id} called")
     try:
         optimization = optimize_inventory_levels(product_id)
+        if isinstance(optimization, dict) and optimization.get("error") == "No inventory data found for product":
+            raise HTTPException(status_code=404, detail=f"No inventory data found for product {product_id}")
         return {
             "status": "success",
             "product_id": product_id,
             "optimization": optimization
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[API] Error optimizing inventory: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to optimize inventory: {str(e)}")
 
 @app.post("/agents/inventory-tracking")
 async def run_inventory_tracking(request: InventoryTrackingRequest):
+    if request.product_id:
+        get_product_or_404(request.product_id)
     logger.info(f"[API] /agents/inventory-tracking called with: {request}")
     try:
         result = run_inventory_tracking_agent(request.dict(exclude_unset=True))
@@ -334,6 +379,8 @@ async def run_inventory_tracking(request: InventoryTrackingRequest):
             }
         else:
             raise HTTPException(status_code=400, detail=result["message"])
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[API] Error in inventory tracking agent: {e}")
         raise HTTPException(status_code=500, detail=f"Inventory tracking failed: {str(e)}")
@@ -341,6 +388,7 @@ async def run_inventory_tracking(request: InventoryTrackingRequest):
 # Competitor Monitoring Agent Endpoints
 @app.post("/agents/competitor/monitor")
 async def monitor_competitors(request: ProductIdRequest):
+    get_product_or_404(request.product_id)
     logger.info(f"[API] /agents/competitor/monitor called with product_id: {request.product_id}")
     try:
         result = run_competitor_monitoring_agent({"product_id": request.product_id})
@@ -353,6 +401,8 @@ async def monitor_competitors(request: ProductIdRequest):
             }
         else:
             raise HTTPException(status_code=400, detail=result["message"])
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[API] Error in competitor monitoring agent: {e}")
         raise HTTPException(status_code=500, detail=f"Competitor monitoring failed: {str(e)}")
@@ -361,7 +411,7 @@ async def monitor_competitors(request: ProductIdRequest):
 async def get_similar_products(product_name: str, category: str, limit: int = 5):
     logger.info(f"[API] /agents/competitor-monitoring/similar/{product_name} called with category={category}, limit={limit}")
     try:
-        from agents.competitor_monitoring_agent import competitor_monitoring_agent
+        from src.agents.competitor_monitoring_agent import competitor_monitoring_agent
         similar_products = competitor_monitoring_agent.get_similar_products(product_name, category, limit)
         return {
             "status": "success",
@@ -379,6 +429,7 @@ async def run_comprehensive_analysis(request: ProductIdRequest):
     """
     Run comprehensive analysis using all agents and tools for a product.
     """
+    get_product_or_404(request.product_id)
     logger.info(f"[API] /agents/comprehensive-analysis called with product_id: {request.product_id}")
     try:
         product_id = request.product_id
@@ -441,35 +492,76 @@ async def run_comprehensive_analysis(request: ProductIdRequest):
 
 @app.get("/products/{product_id}", response_model=ProductResponse)
 async def get_product(product_id: str):
-    product = Product.get(product_id)  # Replace with your ORM's get method
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return product.to_dict()
+    with SessionLocal() as db:
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        # Convert SQLAlchemy object to dict for response
+        return {
+            "id": product.id,
+            "name": product.name,
+            "category": product.category,
+            "base_price": float(product.base_price) if product.base_price is not None else 0.0,
+            "current_price": float(product.current_price) if product.current_price is not None else 0.0,
+            "cost_price": float(product.cost_price) if product.cost_price is not None else 0.0,
+            "stock_level": product.stock_level,
+            "demand_score": float(product.demand_score) if product.demand_score is not None else 0.0,
+            "sales_velocity": float(product.sales_velocity) if product.sales_velocity is not None else 0.0,
+            "price_elasticity": float(product.price_elasticity) if product.price_elasticity is not None else 0.0,
+            "market_position": product.market_position,
+            "is_active": product.is_active,
+            "last_updated": product.last_updated
+        }
 
 @app.get("/products", response_model=List[ProductResponse])
 async def list_products():
-    products = Product.all()  # Replace with your ORM's all method
-    return [p.to_dict() for p in products]
+    with SessionLocal() as db:
+        products = db.query(Product).all()
+        return [
+            {
+                "id": p.id,
+                "name": p.name,
+                "category": p.category,
+                "base_price": float(p.base_price) if p.base_price is not None else 0.0,
+                "current_price": float(p.current_price) if p.current_price is not None else 0.0,
+                "cost_price": float(p.cost_price) if p.cost_price is not None else 0.0,
+                "stock_level": p.stock_level,
+                "demand_score": float(p.demand_score) if p.demand_score is not None else 0.0,
+                "sales_velocity": float(p.sales_velocity) if p.sales_velocity is not None else 0.0,
+                "price_elasticity": float(p.price_elasticity) if p.price_elasticity is not None else 0.0,
+                "market_position": p.market_position,
+                "is_active": p.is_active,
+                "last_updated": p.last_updated
+            }
+            for p in products
+        ]
 
 @app.post("/products")
 async def add_product(product: ProductCreateRequest):
     try:
-        new_product = Product(
-            id=product.id,
-            name=product.name,
-            category=product.category,
-            base_price=product.base_price,
-            current_price=product.current_price,
-            cost_price=product.cost_price,
-            stock_level=product.stock_level,
-            demand_score=product.demand_score,
-            sales_velocity=product.sales_velocity,
-            price_elasticity=product.price_elasticity,
-            market_position=product.market_position,
-            is_active=product.is_active
-        )
-        new_product.save()
-        return {"status": "success", "product": new_product.to_dict()}
+        with SessionLocal() as db:
+            product_dict = product.dict()
+            # Remove id if it's None or empty
+            if not product_dict.get("id"):
+                raise HTTPException(status_code=400, detail="Product id is required")
+            save_product(db, product_dict)
+            # Fetch the product back for response
+            new_product = db.query(Product).filter(Product.id == product.id).first()
+            return {"status": "success", "product": {
+                "id": new_product.id,
+                "name": new_product.name,
+                "category": new_product.category,
+                "base_price": float(new_product.base_price) if new_product.base_price is not None else 0.0,
+                "current_price": float(new_product.current_price) if new_product.current_price is not None else 0.0,
+                "cost_price": float(new_product.cost_price) if new_product.cost_price is not None else 0.0,
+                "stock_level": new_product.stock_level,
+                "demand_score": float(new_product.demand_score) if new_product.demand_score is not None else 0.0,
+                "sales_velocity": float(new_product.sales_velocity) if new_product.sales_velocity is not None else 0.0,
+                "price_elasticity": float(new_product.price_elasticity) if new_product.price_elasticity is not None else 0.0,
+                "market_position": new_product.market_position,
+                "is_active": new_product.is_active,
+                "last_updated": new_product.last_updated
+            }}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
